@@ -1,0 +1,22 @@
+# Jaeger all-in-one — traces storage and query UI
+provisionDataStore:
+  cassandra: false
+  elasticsearch: false
+
+allInOne:
+  enabled: true
+  image:
+    repository: jaegertracing/all-in-one
+    tag: "1.64.0"
+
+storage:
+  type: memory
+
+collector:
+  enabled: false
+
+query:
+  enabled: false
+
+agent:
+  enabled: false

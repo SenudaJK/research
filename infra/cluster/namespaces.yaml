@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: boutique
+  labels:
+    app.kubernetes.io/part-of: self-healing-research
+    phase: sense
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    app.kubernetes.io/part-of: self-healing-research
+    phase: sense
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chaos-mesh
+  labels:
+    app.kubernetes.io/part-of: self-healing-research
+    phase: validate

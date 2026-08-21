@@ -1,0 +1,22 @@
+# Expose Jaeger query UI on NodePort 31686 (mapped to localhost:16686 in kind-config.yaml).
+# The Jaeger Helm chart creates headless ClusterIP services for all-in-one mode.
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-query-external
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/component: query-external
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/instance: jaeger
+    app.kubernetes.io/component: all-in-one
+  ports:
+    - name: http-query
+      port: 16686
+      targetPort: 16686
+      nodePort: 31686
+      protocol: TCP

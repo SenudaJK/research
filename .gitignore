@@ -1,0 +1,44 @@
+# Raw telemetry (re-collect with infra/scripts/collect-baseline.sh)
+evaluation/runs/**/metrics/
+evaluation/runs/**/logs/
+evaluation/runs/**/traces/
+
+# ML artifacts (Phase 2+)
+fusion-engine/models/
+decision-engine/models/
+fusion-engine/**/*.pkl
+fusion-engine/**/*.joblib
+decision-engine/**/*.pkl
+decision-engine/**/*.joblib
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Node / Go build artifacts
+node_modules/
+dist/
+vendor/
+*.exe
+*.test
+
+# IDE and OS
+.cursor/
+.DS_Store
+.vscode/
+*.swp
+*.swo
+*~
+
+# One-off exports (not part of repo structure)
+Kubernetes _ API server-*.json
+
+# Thesis and writing artifacts (keep local unless institution allows)
+IM2021014.pdf
+*.docx

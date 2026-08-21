@@ -1,0 +1,14 @@
+{
+  "passed": false,
+  "trainable": false,
+  "checked_at": "2026-08-17T14:10:00Z",
+  "reason": "Application RED query http_server_duration_milliseconds_count was empty in all 29 samples. CPU, memory, logs, and traces are present. Do not train Isolation Forest on this run. See docs/measurement-protocol.md.",
+  "samples": 29,
+  "non_empty": {
+    "red_request_rate": 0,
+    "cpu_usage": 29,
+    "memory_working_set": 29,
+    "boutique_logs": 29,
+    "jaeger_services": 29
+  }
+}

@@ -1,0 +1,13 @@
+NAME                                     READY   STATUS    RESTARTS       AGE   IP            NODE                            NOMINATED NODE   READINESS GATES
+adservice-5c5cb6fd89-dm5g8               1/1     Running   1 (7m5s ago)   47m   10.244.2.12   self-healing-research-worker    <none>           <none>
+cartservice-55995459cd-pt28c             1/1     Running   0              37m   10.244.1.21   self-healing-research-worker2   <none>           <none>
+checkoutservice-5dd566f97c-xbnvr         1/1     Running   0              47m   10.244.2.11   self-healing-research-worker    <none>           <none>
+currencyservice-7cf854779d-859cw         1/1     Running   1 (19m ago)    47m   10.244.1.14   self-healing-research-worker2   <none>           <none>
+emailservice-865686d78f-k5pnp            1/1     Running   0              47m   10.244.1.15   self-healing-research-worker2   <none>           <none>
+frontend-75849bd78-zwkrc                 1/1     Running   0              47m   10.244.2.13   self-healing-research-worker    <none>           <none>
+loadgenerator-57544dd96f-n5pzg           1/1     Running   0              47m   10.244.2.14   self-healing-research-worker    <none>           <none>
+paymentservice-5f894995b9-6tblt          1/1     Running   0              47m   10.244.1.16   self-healing-research-worker2   <none>           <none>
+productcatalogservice-74977474d6-tz9tc   1/1     Running   0              47m   10.244.1.17   self-healing-research-worker2   <none>           <none>
+recommendationservice-84cf6f57bd-qxw75   1/1     Running   0              47m   10.244.1.18   self-healing-research-worker2   <none>           <none>
+redis-cart-558f8d8d44-gl7lh              1/1     Running   0              47m   10.244.2.15   self-healing-research-worker    <none>           <none>
+shippingservice-86d6d6788c-7p2fj         1/1     Running   0              47m   10.244.1.19   self-healing-research-worker2   <none>           <none>

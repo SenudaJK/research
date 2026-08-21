@@ -1,0 +1,2 @@
+# Baseline telemetry runs (fault-free, Phase 1 Sense).
+# Each subdirectory is one 30-minute collection run with metrics/, logs/, traces/, meta/.

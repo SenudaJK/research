@@ -1,0 +1,46 @@
+# kube-prometheus-stack values — metrics pillar (Prometheus + Grafana + exporters)
+fullnameOverride: kube-prometheus
+
+prometheus:
+  service:
+    type: NodePort
+    nodePort: 30090
+  prometheusSpec:
+    retention: 7d
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+    podMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorNamespaceSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    additionalScrapeConfigs:
+      # RED metrics derived from OTLP traces via OTEL spanmetrics connector.
+      - job_name: otel-collector
+        static_configs:
+          - targets:
+              - opentelemetry-collector.observability.svc.cluster.local:8889
+        metrics_path: /metrics
+
+grafana:
+  enabled: true
+  adminPassword: research
+  service:
+    type: NodePort
+    nodePort: 30300
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      access: proxy
+      url: http://loki-gateway.observability.svc.cluster.local
+      isDefault: false
+    # Jaeger UI: http://localhost:16686 (Grafana 13 removed built-in type: jaeger)
+
+alertmanager:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true

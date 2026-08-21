@@ -1,0 +1,34 @@
+# Kind cluster config for Phase 1 (Sense) testbed.
+# Exposes observability UIs on localhost for development access.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: self-healing-research
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 8080
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 8443
+        protocol: TCP
+      - containerPort: 30090
+        hostPort: 9090
+        protocol: TCP
+      - containerPort: 30300
+        hostPort: 3000
+        protocol: TCP
+      - containerPort: 31686
+        hostPort: 16686
+        protocol: TCP
+      - containerPort: 31000
+        hostPort: 3100
+        protocol: TCP
+  - role: worker
+  - role: worker
