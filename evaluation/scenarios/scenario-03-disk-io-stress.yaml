@@ -1,0 +1,24 @@
+# Scenario 3 — Resource — Disk I/O stress
+#
+# productcatalogservice reads its catalog from a local JSON file on startup/reload,
+# making it the most disk-I/O-sensitive boutique service. Uses StressChaos's io
+# stressor (stress-ng --iomix) rather than IOChaos, since IOChaos requires a
+# fault-injection sidecar on the volume mount and productcatalogservice has no
+# mounted PVC to target.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: scenario-03-disk-io-stress
+  namespace: chaos-mesh
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - boutique
+    labelSelectors:
+      app: productcatalogservice
+  stressors:
+    io:
+      workers: 4
+      bytes: "256MB"
+  duration: "5m"

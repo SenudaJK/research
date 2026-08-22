@@ -1,0 +1,30 @@
+# Scenario 9 — Pod/State — Stateful volume detachment
+#
+# Google Online Boutique ships no PVC-backed service by default — redis-cart
+# uses an emptyDir, which cannot be "detached" in the cloud-disk sense, and
+# Chaos Mesh has no CRD action named detach. This scenario is therefore
+# approximated with IOChaos injecting persistent I/O errors on redis-cart's
+# data path, simulating the application-visible effect of a lost volume
+# (reads/writes failing) rather than the infrastructure event itself.
+# Document this substitution explicitly in docs/experiment-log.md — if the
+# thesis requires a literal detach, redis-cart must first be reprovisioned
+# with a real PVC on a CSI driver that supports online detach (e.g. Kind's
+# local-path-provisioner does not; consider Minikube + a cloud-backed CSI).
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: scenario-09-volume-detachment
+  namespace: chaos-mesh
+spec:
+  action: fault
+  mode: all
+  selector:
+    namespaces:
+      - boutique
+    labelSelectors:
+      app: redis-cart
+  volumePath: /data
+  path: "**/*"
+  errno: 5   # EIO — I/O error, closest analogue to a detached backing volume
+  percent: 100
+  duration: "5m"

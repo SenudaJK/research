@@ -1,0 +1,26 @@
+# Scenario 6 — Network — DNS resolution failure
+#
+# frontend resolves every downstream service (product catalog, cart, checkout,
+# recommendation, currency, shipping, ad) by DNS on every request, making it the
+# highest-blast-radius target for a DNS fault. Requires the Chaos Mesh DNS server
+# component (chaos-mesh.org/inject: enabled on the boutique namespace, or per-pod
+# annotation) — see infra/chaos-mesh/README.md prerequisites.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: DNSChaos
+metadata:
+  name: scenario-06-dns-failure
+  namespace: chaos-mesh
+spec:
+  action: error
+  mode: all
+  selector:
+    namespaces:
+      - boutique
+    labelSelectors:
+      app: frontend
+  patterns:
+    - "*productcatalogservice*"
+    - "*cartservice*"
+    - "*checkoutservice*"
+    - "*recommendationservice*"
+  duration: "5m"

@@ -1,0 +1,26 @@
+# Scenario 1 — Resource — CPU starvation (noisy neighbor)
+#
+# Injects CPU stress inside the recommendationservice container itself
+# (Chaos Mesh's StressChaos runs stress-ng in the target pod's cgroup),
+# approximating a noisy-neighbor condition where the service cannot get
+# the CPU cycles it needs.
+#
+# T0 = status.experimentStartTime (see docs/measurement-protocol.md).
+# Verify label selector with: kubectl get pods -n boutique --show-labels
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: scenario-01-cpu-starvation
+  namespace: chaos-mesh
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - boutique
+    labelSelectors:
+      app: recommendationservice
+  stressors:
+    cpu:
+      workers: 2
+      load: 100
+  duration: "5m"

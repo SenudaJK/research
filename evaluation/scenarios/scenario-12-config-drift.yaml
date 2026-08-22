@@ -1,0 +1,31 @@
+# Scenario 12 — Application — Port misconfig / auth revocation
+#
+# Chaos Mesh has no CRD for configuration drift. This is implemented as a real
+# Kubernetes NetworkPolicy (not a Chaos Mesh experiment) that denies ingress to
+# checkoutservice's gRPC port from paymentservice, reproducing the user-visible
+# effect of a port misconfiguration or a revoked service-to-service credential.
+#
+# Apply:   kubectl apply -f scenario-12-config-drift.yaml
+# Revert:  kubectl delete -f scenario-12-config-drift.yaml
+# T0 for this scenario = the `kubectl apply` timestamp — record it manually in
+# docs/experiment-log.md (see the Time origin note in measurement-protocol.md
+# for the "apply timestamp" fallback rule).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: scenario-12-config-drift
+  namespace: boutique
+spec:
+  podSelector:
+    matchLabels:
+      app: checkoutservice
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: NotIn
+                values:
+                  - paymentservice

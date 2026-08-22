@@ -1,0 +1,23 @@
+# Scenario 8 — Pod/State — Node unresponsiveness
+#
+# Chaos Mesh community edition has no stable NodeChaos CRD. This approximates
+# node unresponsiveness by pod-failure (return a fake "Pending"/NotReady state
+# rather than deleting) applied to ALL pods scheduled on a single named worker
+# node, which is the closest available proxy for the node itself going dark.
+#
+# Replace <WORKER_NODE_NAME> with a real node from:
+#   kubectl get nodes -o name   (expect self-healing-research-worker / -worker2 on Kind)
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: scenario-08-node-unresponsive
+  namespace: chaos-mesh
+spec:
+  action: pod-failure
+  mode: all
+  selector:
+    namespaces:
+      - boutique
+    nodes:
+      - "<WORKER_NODE_NAME>"
+  duration: "5m"

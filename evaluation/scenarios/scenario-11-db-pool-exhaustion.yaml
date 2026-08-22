@@ -1,0 +1,34 @@
+# Scenario 11 — Application — DB connection pool exhaustion
+#
+# Online Boutique has no relational DB; cartservice's nearest analogue is its
+# Redis connection to redis-cart. Chaos Mesh has no native "connection pool"
+# fault, so this throttles bandwidth and partitions a fraction of traffic
+# between cartservice and redis-cart, forcing cartservice's connection pool to
+# back up with slow/failed calls — the closest available proxy for pool
+# exhaustion. Document this substitution in docs/experiment-log.md.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: scenario-11-db-pool-exhaustion
+  namespace: chaos-mesh
+spec:
+  action: bandwidth
+  mode: all
+  selector:
+    namespaces:
+      - boutique
+    labelSelectors:
+      app: cartservice
+  bandwidth:
+    rate: "10kbps"
+    limit: 100
+    buffer: 1000
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - boutique
+      labelSelectors:
+        app: redis-cart
+  direction: to
+  duration: "5m"

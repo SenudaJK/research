@@ -1,0 +1,30 @@
+# Scenario 10 — Application — HTTP 5xx error injection
+#
+# Aborts inbound HTTP requests to frontend with a 500, directly exercising the
+# Run A detection rule "frontend success rate < 0.99" and the RQ1 trace-error
+# feature. HTTPChaos intercepts at the pod network namespace level; no sidecar
+# injection annotation is required in current Chaos Mesh versions.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: HTTPChaos
+metadata:
+  name: scenario-10-http-5xx
+  namespace: chaos-mesh
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - boutique
+    labelSelectors:
+      app: frontend
+  target: Request
+  port: 8080
+  path: "*"
+  method: GET
+  abort: false
+  patch:
+    body:
+      type: JSON
+      value: '{"error":"chaos-injected-500"}'
+  replace:
+    code: 500
+  duration: "5m"

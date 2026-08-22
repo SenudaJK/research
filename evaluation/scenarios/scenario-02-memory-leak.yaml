@@ -1,0 +1,25 @@
+# Scenario 2 — Resource — Memory leak → OOM
+#
+# cartservice has explicit memory limits (infra/boutique/patches/cartservice-resources.yaml),
+# which makes it the only boutique service where a memory stressor can reliably
+# trigger an OOMKill rather than just idle headroom absorption.
+# StressChaos's memory stressor is a step function, not a gradual leak — this is
+# the closest native Chaos Mesh proxy for "memory leak"; note the substitution in
+# docs/experiment-log.md notes field for this scenario.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: scenario-02-memory-leak
+  namespace: chaos-mesh
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - boutique
+    labelSelectors:
+      app: cartservice
+  stressors:
+    memory:
+      workers: 1
+      size: "90%"
+  duration: "5m"

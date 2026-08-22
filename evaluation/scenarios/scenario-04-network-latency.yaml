@@ -1,0 +1,24 @@
+# Scenario 4 — Network — 200ms latency injection
+#
+# Delays traffic on checkoutservice, which fans out to payment, shipping, email,
+# and currency on the critical checkout path — a 200ms delay there is expected
+# to be visible end-to-end in frontend trace latency.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: scenario-04-network-latency
+  namespace: chaos-mesh
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - boutique
+    labelSelectors:
+      app: checkoutservice
+  delay:
+    latency: "200ms"
+    jitter: "10ms"
+    correlation: "25"
+  direction: to
+  duration: "5m"

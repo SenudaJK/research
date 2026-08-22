@@ -1,0 +1,38 @@
+# Chaos Mesh — chaos engineering platform for Phase 4 (Validate).
+# Installed into its own namespace (chaos-mesh), separate from the boutique
+# workload and observability stack, per infra/cluster/namespaces.yaml.
+
+chaosDaemon:
+  # Kind nodes run containerd; Minikube (Docker driver) also runs containerd
+  # inside the node VM. If deploying on a Minikube VM driver instead, override
+  # runtime/socketPath accordingly before install.
+  runtime: containerd
+  socketPath: /run/containerd/containerd.sock
+  privileged: true
+
+# Required for scenario-06-dns-failure.yaml (DNSChaos). Without this, DNSChaos
+# experiments admit but never actually intercept resolution.
+dnsServer:
+  create: true
+
+dashboard:
+  create: true
+  securityMode: true
+  # No NodePort exposed here to avoid editing infra/cluster/kind-config.yaml —
+  # access locally with:
+  #   kubectl port-forward -n chaos-mesh svc/chaos-dashboard 2333:2333
+  # then open http://localhost:2333 and sign in with a token for a service
+  # account bound to a chaos-mesh RBAC role (see the "Access dashboard"
+  # section of the official Chaos Mesh docs for the current role manifest URL
+  # and role names for read-only vs manager access).
+  service:
+    type: ClusterIP
+
+# clusterScoped stays at the chart default (true) — this is a single-tenant
+# research cluster, so namespace-scoped mode (which would also force every
+# experiment CR to live inside the target namespace) isn't needed. Blast
+# radius is instead controlled per-experiment via `selector.namespaces:
+# [boutique]`, already set in every evaluation/scenarios/*.yaml file —
+# chaos-mesh and observability must never be targets, or it would poison the
+# RQ1 log/metric features exactly like the Loki namespace exclusion in
+# docs/measurement-protocol.md.

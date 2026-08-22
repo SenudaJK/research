@@ -1,0 +1,24 @@
+# Scenario 5 — Network — 10-20% packet loss
+#
+# Targets shippingservice. Loss percentage is randomized per Chaos Mesh's own
+# probabilistic model within the 10-20% band specified by the methodology
+# checklist by setting loss to the midpoint (15%); adjust per-iteration if the
+# thesis requires sampling the full range across the 10 repetitions.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: scenario-05-packet-loss
+  namespace: chaos-mesh
+spec:
+  action: loss
+  mode: all
+  selector:
+    namespaces:
+      - boutique
+    labelSelectors:
+      app: shippingservice
+  loss:
+    loss: "15"
+    correlation: "25"
+  direction: to
+  duration: "5m"
