@@ -1,0 +1,41 @@
+# Model hyperparameters for Phase 2 (Analyze) anomaly detection.
+# Centralized here for the same reason infra/versions.env centralizes infra
+# pins: nothing load-bearing should be hardcoded inside a script.
+#
+# threshold_percentile is frozen per docs/measurement-protocol.md — it is set
+# from the fault-free baseline's own training scores, never tuned on chaos
+# run data. Changing it after Phase 4 starts invalidates already-collected
+# trials; if you must change it, note the reason in docs/experiment-log.md
+# and treat prior trials as a separate condition.
+
+features:
+  - cpu_util
+  - mem_util
+  - network_rx
+  - log_error_rate
+  - trace_latency_ms
+  - trace_error_pct
+
+# Isolation Forest is the detector actually deployed in decision-engine/ per
+# docs/architecture.md. One-Class SVM and LOF exist only to produce the
+# academic justification table for choosing Isolation Forest (RQ1/RQ2
+# supporting evidence) — they are never wired into the live decision path.
+isolation_forest:
+  n_estimators: 100
+  contamination: 0.01
+  random_state: 42
+
+one_class_svm:
+  nu: 0.01
+  kernel: rbf
+  gamma: scale
+
+local_outlier_factor:
+  n_neighbors: 20
+  contamination: 0.01
+  novelty: true
+
+# tau = the (threshold_percentile)th percentile of Isolation Forest anomaly
+# scores on the training (fault-free) baseline. See "MTTD — Run B" in
+# docs/measurement-protocol.md.
+threshold_percentile: 99
