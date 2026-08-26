@@ -1,9 +1,13 @@
-# Scenario 5 — Network — 10-20% packet loss
+# Scenario 5 — Network — 10% packet loss
 #
-# Targets shippingservice. Loss percentage is randomized per Chaos Mesh's own
-# probabilistic model within the 10-20% band specified by the methodology
-# checklist by setting loss to the midpoint (15%); adjust per-iteration if the
-# thesis requires sampling the full range across the 10 repetitions.
+# Target: shippingservice, per Table I of "Final Disseration for ICTAC.md"
+# ("10% packet loss on shipping service API"). Recovery playbook per the
+# paper: auto-scale replicas to absorb latency; trigger path verification.
+#
+# docs/methodology-checklist.md currently describes this scenario as a
+# "10-20% packet loss" band — the paper's Table I is the fixed reference
+# point (see conversation decision to align to it), so this uses the exact
+# 10% the paper specifies. Update the checklist wording to match.
 apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:
@@ -18,7 +22,7 @@ spec:
     labelSelectors:
       app: shippingservice
   loss:
-    loss: "15"
+    loss: "10"
     correlation: "25"
   direction: to
   duration: "5m"

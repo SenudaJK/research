@@ -1,9 +1,16 @@
 # Scenario 7 — Pod/State — Random pod kill
 #
-# Kills the paymentservice pod outright (SIGKILL equivalent via pod deletion).
-# One-shot fault: Chaos Mesh restarts the selection each `duration`, so this is
-# left short and unpaused rather than continuous, matching a single discrete
-# kill event per trial as described in the methodology checklist.
+# Target: frontend, per Table I of "Final Disseration for ICTAC.md"
+# ("Continuous sudden pod termination on frontend"). Recovery playbook per
+# the paper: re-schedule frontend pods; verify readiness probes.
+#
+# Note: the paper describes "continuous" termination, but this manifest
+# injects a single discrete kill per trial (pod-kill, mode: one), matching
+# the "10 independent runs" trial structure in docs/methodology-checklist.md
+# rather than a sustained kill loop. If the paper's "continuous" wording is
+# meant literally, change mode to "fixed-percent"/"all" with a Scheduler, or
+# re-apply this manifest on a fixed interval for the trial's duration —
+# document whichever choice is made in docs/experiment-log.md.
 apiVersion: chaos-mesh.org/v1alpha1
 kind: PodChaos
 metadata:
@@ -16,4 +23,4 @@ spec:
     namespaces:
       - boutique
     labelSelectors:
-      app: paymentservice
+      app: frontend

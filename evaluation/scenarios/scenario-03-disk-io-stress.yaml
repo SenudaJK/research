@@ -1,10 +1,20 @@
 # Scenario 3 — Resource — Disk I/O stress
 #
-# productcatalogservice reads its catalog from a local JSON file on startup/reload,
-# making it the most disk-I/O-sensitive boutique service. Uses StressChaos's io
-# stressor (stress-ng --iomix) rather than IOChaos, since IOChaos requires a
-# fault-injection sidecar on the volume mount and productcatalogservice has no
-# mounted PVC to target.
+# Target: paymentservice, per Table I of "Final Disseration for ICTAC.md"
+# ("Disk read/write pressure on payment database"). Recovery playbook per
+# the paper: evict affected pods to alternative nodes with low disk load.
+#
+# IMPORTANT substitution: Online Boutique's paymentservice has no backing
+# database — it's a stateless gRPC service that validates a fake credit card
+# and returns a transaction ID, with no disk-backed storage at all. There is
+# no literal "payment database" to stress. This injects disk I/O stress on
+# the paymentservice container itself as the closest available proxy for
+# the paper's scenario, via StressChaos's io stressor (stress-ng --iomix)
+# rather than IOChaos, since IOChaos requires a fault-injection sidecar on a
+# mounted volume and paymentservice has no PVC to target. Document this
+# substitution in docs/experiment-log.md; if the thesis requires a literal
+# database, paymentservice must first be re-architected onto a real
+# datastore.
 apiVersion: chaos-mesh.org/v1alpha1
 kind: StressChaos
 metadata:
@@ -16,7 +26,7 @@ spec:
     namespaces:
       - boutique
     labelSelectors:
-      app: productcatalogservice
+      app: paymentservice
   stressors:
     io:
       workers: 4

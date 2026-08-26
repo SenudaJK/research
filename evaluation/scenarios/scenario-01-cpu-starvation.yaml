@@ -1,9 +1,15 @@
 # Scenario 1 — Resource — CPU starvation (noisy neighbor)
 #
-# Injects CPU stress inside the recommendationservice container itself
-# (Chaos Mesh's StressChaos runs stress-ng in the target pod's cgroup),
-# approximating a noisy-neighbor condition where the service cannot get
-# the CPU cycles it needs.
+# Target: checkoutservice, per Table I of "Final Disseration for ICTAC.md"
+# ("High CPU load injection on checkout service"). Recovery playbook per the
+# paper: scale checkout pod replicas; trigger CPU throttle alert — this must
+# be reflected once decision-engine/'s rule playbook exists.
+#
+# Injects CPU stress inside the checkoutservice container itself (Chaos
+# Mesh's StressChaos runs stress-ng in the target pod's cgroup), approximating
+# a noisy-neighbor condition where the service cannot get the CPU cycles it
+# needs — checkoutservice sits on the critical purchase path, so degradation
+# here is expected to be highly visible in frontend trace latency.
 #
 # T0 = status.experimentStartTime (see docs/measurement-protocol.md).
 # Verify label selector with: kubectl get pods -n boutique --show-labels
@@ -18,7 +24,7 @@ spec:
     namespaces:
       - boutique
     labelSelectors:
-      app: recommendationservice
+      app: checkoutservice
   stressors:
     cpu:
       workers: 2

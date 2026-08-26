@@ -1,8 +1,17 @@
 # Scenario 4 — Network — 200ms latency injection
 #
-# Delays traffic on checkoutservice, which fans out to payment, shipping, email,
-# and currency on the critical checkout path — a 200ms delay there is expected
-# to be visible end-to-end in frontend trace latency.
+# Target: recommendationservice, per Table I of "Final Disseration for
+# ICTAC.md" ("Network delay injection on recommendation RPC"). Recovery
+# playbook per the paper: reroute traffic; adjust Istio sidecar retry/timeout
+# configurations — note this project has no Istio/service mesh deployed
+# (infra/boutique has no mesh sidecar injection), so that specific recovery
+# action is not implementable as literally described; the operator's
+# rerouting logic will need a non-mesh equivalent (e.g. Kubernetes Service
+# endpoint manipulation) once decision-engine/operator/ are built.
+#
+# Delays traffic to recommendationservice, called by frontend on the product
+# page render path — a 200ms delay there is expected to be visible in
+# frontend trace latency without a hard failure.
 apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:
@@ -15,7 +24,7 @@ spec:
     namespaces:
       - boutique
     labelSelectors:
-      app: checkoutservice
+      app: recommendationservice
   delay:
     latency: "200ms"
     jitter: "10ms"

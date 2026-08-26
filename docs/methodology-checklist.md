@@ -62,20 +62,28 @@ Phase gates and evidence requirements aligned with Chapter 3 of `IM2021014.pdf`.
 ### Scenarios
 
 
-| #   | Domain      | Scenario                         |
-| --- | ----------- | -------------------------------- |
-| 1   | Resource    | CPU starvation (noisy neighbor)  |
-| 2   | Resource    | Memory leak → OOM                |
-| 3   | Resource    | Disk I/O stress                  |
-| 4   | Network     | 200ms latency injection          |
-| 5   | Network     | 10–20% packet loss               |
-| 6   | Network     | DNS resolution failure           |
-| 7   | Pod/State   | Random pod kill                  |
-| 8   | Pod/State   | Node unresponsiveness            |
-| 9   | Pod/State   | Stateful volume detachment       |
-| 10  | Application | HTTP 5xx error injection         |
-| 11  | Application | DB connection pool exhaustion    |
-| 12  | Application | Port misconfig / auth revocation |
+Target services and descriptions are aligned to Table I of "Final
+Disseration for ICTAC.md" (the fixed reference point — see
+docs/experiment-log.md for any deviations required by what Online Boutique
+actually has available, e.g. no real DB behind payment/product-catalog).
+
+| #   | Domain      | Scenario                                    | Target service         |
+| --- | ----------- | -------------------------------------------- | ----------------------- |
+| 1   | Resource    | CPU starvation (noisy neighbor)             | checkoutservice         |
+| 2   | Resource    | Memory leak → OOM                            | cartservice             |
+| 3   | Resource    | Disk I/O stress                              | paymentservice*         |
+| 4   | Network     | 200ms latency injection                      | recommendationservice   |
+| 5   | Network     | 10% packet loss                              | shippingservice         |
+| 6   | Network     | DNS resolution failure                       | frontend (catalog DNS)  |
+| 7   | Pod/State   | Random pod kill                              | frontend                |
+| 8   | Pod/State   | Node unresponsiveness                        | (node-scoped)           |
+| 9   | Pod/State   | Stateful volume detachment                   | redis-cart              |
+| 10  | Application | HTTP 5xx error injection                     | frontend                |
+| 11  | Application | DB connection pool exhaustion                | productcatalogservice*  |
+| 12  | Application | Config drift (manual env var modification)   | checkoutservice         |
+
+\* No real database exists behind this service in Online Boutique — see the
+substitution note in the corresponding `evaluation/scenarios/*.yaml` file.
 
 
 

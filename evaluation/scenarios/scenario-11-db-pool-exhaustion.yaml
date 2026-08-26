@@ -1,11 +1,20 @@
 # Scenario 11 — Application — DB connection pool exhaustion
 #
-# Online Boutique has no relational DB; cartservice's nearest analogue is its
-# Redis connection to redis-cart. Chaos Mesh has no native "connection pool"
-# fault, so this throttles bandwidth and partitions a fraction of traffic
-# between cartservice and redis-cart, forcing cartservice's connection pool to
-# back up with slow/failed calls — the closest available proxy for pool
-# exhaustion. Document this substitution in docs/experiment-log.md.
+# Target: productcatalogservice, per Table I of "Final Disseration for
+# ICTAC.md" ("Connection pool exhaustion on product catalog DB"). Recovery
+# playbook per the paper: dynamically upscale database pool limit via
+# ConfigMap reload.
+#
+# IMPORTANT substitution: Online Boutique's productcatalogservice has no
+# backing database at all — it serves products.json from local memory, so
+# there is no real connection pool to exhaust, and no ConfigMap-driven pool
+# limit for the operator to reload. This scenario throttles inbound bandwidth
+# on productcatalogservice itself, forcing its callers (frontend,
+# recommendationservice) to experience the same symptom a real exhausted
+# connection pool would produce — request queuing and timeouts — without a
+# literal database in the loop. Document this substitution in
+# docs/experiment-log.md; if the thesis requires an actual DB-backed pool,
+# productcatalogservice must first be re-architected onto a real datastore.
 apiVersion: chaos-mesh.org/v1alpha1
 kind: NetworkChaos
 metadata:
@@ -18,17 +27,10 @@ spec:
     namespaces:
       - boutique
     labelSelectors:
-      app: cartservice
+      app: productcatalogservice
   bandwidth:
     rate: "10kbps"
     limit: 100
     buffer: 1000
-  target:
-    mode: all
-    selector:
-      namespaces:
-        - boutique
-      labelSelectors:
-        app: redis-cart
   direction: to
   duration: "5m"

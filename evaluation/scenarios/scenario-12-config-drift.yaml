@@ -1,31 +1,33 @@
-# Scenario 12 — Application — Port misconfig / auth revocation
+# Scenario 12 — Application — Config drift (manual env var modification)
 #
-# Chaos Mesh has no CRD for configuration drift. This is implemented as a real
-# Kubernetes NetworkPolicy (not a Chaos Mesh experiment) that denies ingress to
-# checkoutservice's gRPC port from paymentservice, reproducing the user-visible
-# effect of a port misconfiguration or a revoked service-to-service credential.
+# Per Table I of "Final Disseration for ICTAC.md": "Manual modification of
+# deployment environment vars" → recovery playbook "Detect out-of-sync
+# state; reconcile with active Git repository" (GitOps rollback).
 #
-# Apply:   kubectl apply -f scenario-12-config-drift.yaml
-# Revert:  kubectl delete -f scenario-12-config-drift.yaml
-# T0 for this scenario = the `kubectl apply` timestamp — record it manually in
-# docs/experiment-log.md (see the Time origin note in measurement-protocol.md
-# for the "apply timestamp" fallback rule).
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: scenario-12-config-drift
-  namespace: boutique
-spec:
-  podSelector:
-    matchLabels:
-      app: checkoutservice
-  policyTypes:
-    - Ingress
-  ingress:
-    - from:
-        - podSelector:
-            matchExpressions:
-              - key: app
-                operator: NotIn
-                values:
-                  - paymentservice
+# Chaos Mesh has no CRD for configuration drift, and this project has no
+# GitOps controller (Flux/Argo CD) installed anywhere under infra/ — the
+# paper's literal recovery action ("reconcile with active Git repository")
+# is not implementable until one is added. Until then, the operator's
+# recovery for this scenario should instead re-apply the known-good manifest
+# directly (kubectl apply -f infra/boutique/), which is the non-GitOps
+# equivalent of the same reconciliation idea; note this deviation in
+# docs/experiment-log.md.
+#
+# Fault: drifts checkoutservice's PAYMENT_SERVICE_ADDR env var to a
+# nonexistent port, causing checkout gRPC calls to paymentservice to fail —
+# a concrete, single-variable drift matching the paper's wording, while
+# still landing in the "Application Errors" domain via HTTP 5xx/gRPC errors
+# surfaced to the frontend.
+#
+# Apply (inject drift):
+#   kubectl patch deployment checkoutservice -n boutique --type=json \
+#     -p='[{"op":"replace","path":"/spec/template/spec/containers/0/env/0/value","value":"paymentservice.boutique.svc.cluster.local:9"}]'
+#   # verify the env var index/name first: kubectl get deployment checkoutservice -n boutique -o=jsonpath='{.spec.template.spec.containers[0].env}'
+#
+# Revert (GitOps-equivalent reconciliation):
+#   kubectl apply -k infra/boutique/
+#
+# T0 for this scenario = the `kubectl patch` timestamp — record it manually
+# in docs/experiment-log.md (see the Time origin note in
+# measurement-protocol.md for the "apply timestamp" fallback rule). There is
+# no Chaos Mesh object to read status.experimentStartTime from.
