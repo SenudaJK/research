@@ -8,6 +8,26 @@ allInOne:
   image:
     repository: jaegertracing/all-in-one
     tag: "1.64.0"
+  # Discovered 2026-08-27: with no memory limit and unbounded in-memory trace
+  # storage, Jaeger grew until it triggered a NODE-WIDE (not container-scoped)
+  # kernel OOM after ~10 days of continuous load-generator traffic — 11
+  # restarts logged, each one silently wiping all stored traces and each OOM
+  # event a node-wide resource crisis capable of perturbing ANY pod's
+  # metrics at an untimestamped moment, independent of any chaos experiment.
+  # A memory limit forces a scoped, cgroup-contained OOMKill of Jaeger alone
+  # instead of the kernel picking a victim process cluster-wide.
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  # MEMORY_MAX_TRACES bounds the in-memory storage so it stops growing
+  # instead of relying on the resource limit above as the only backstop.
+  extraEnv:
+    - name: MEMORY_MAX_TRACES
+      value: "50000"
 
 storage:
   type: memory
