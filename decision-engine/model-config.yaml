@@ -39,3 +39,10 @@ local_outlier_factor:
 # scores on the training (fault-free) baseline. See "MTTD — Run B" in
 # docs/measurement-protocol.md.
 threshold_percentile: 99
+
+# Minimum State Vector rows required to train. Discovered 2026-08-27: a
+# 30-sample baseline produced an Isolation Forest that could not separate a
+# 30-sigma CPU outlier from healthy data — trees were too shallow and the
+# p99 threshold too close to the training max to mean anything. Mirrors
+# MIN_TRAINABLE_SAMPLES in infra/versions.env.
+min_training_samples: 200

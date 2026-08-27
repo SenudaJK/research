@@ -154,19 +154,21 @@ files under `evaluation/runs/`:
 
 ## Baseline used for training
 
-Isolation Forest is trained only on a **quality-gated** fault-free run.
+Isolation Forest is trained only on a **quality-gated** fault-free run that
+also meets `MIN_TRAINABLE_SAMPLES` (default 200, `infra/versions.env`).
 
 | Run ID | Status | Use |
 |--------|--------|-----|
 | `20260817T015611Z` | Incomplete. Application RED query was `http_server_duration_milliseconds_count` (empty in all 29 samples). CPU, memory, logs, traces present. | Instrumentation proof only. **Do not train.** |
 | `20260817T141615Z` | 180 s smoke. All pillars non-empty, including RED. `trainable: false`. | Pipeline proof only. **Do not train.** |
-| Later 1800 s run with `meta/quality.json` `"trainable": true` | Full soak, quality gate passed. | **Training set** for Phase 2. |
+| `20260827T012747Z` | Complete, quality-gated (1800s/30 samples), `trainable: true` under the old duration-only rule. Empirically confirmed insufficient: a 30-sigma injected CPU outlier scored *below* the frozen tau — 30 samples gives Isolation Forest trees too shallow to separate it, and a p99 threshold over 30 points sits almost at the training max. | Do not use for a frozen tau. Superseded by the `MIN_TRAINABLE_SAMPLES` gate below. |
+| Later run with `samples >= MIN_TRAINABLE_SAMPLES` (200) and `meta/quality.json` `"trainable": true` | Full soak, quality gate passed, statistically adequate sample count. | **Training set** for Phase 2. |
 
 Collect with:
 
 ```bash
-bash infra/scripts/collect-baseline.sh          # 30 minutes
-bash infra/scripts/check-baseline-quality.sh    # fail if RED is empty
+BASELINE_DURATION_SECONDS=12000 bash infra/scripts/collect-baseline.sh   # 200 samples at 60s interval
+bash infra/scripts/check-baseline-quality.sh                            # fail if RED is empty or samples < MIN_TRAINABLE_SAMPLES
 ```
 
 Smoke (not for training):

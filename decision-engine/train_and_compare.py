@@ -67,6 +67,19 @@ class ModelTrainerAndComparer:
         missing = [c for c in self.features if c not in df.columns]
         if missing:
             sys.exit(f"ERROR: state vector CSV missing columns: {missing}")
+        min_samples = self.config.get("min_training_samples", 0)
+        if len(df) < min_samples:
+            sys.exit(
+                f"ERROR: {data_path} has {len(df)} rows, below "
+                f"min_training_samples={min_samples} in model-config.yaml.\n"
+                "Isolation Forest on too few samples produces shallow trees "
+                "and an unstable percentile threshold that cannot separate "
+                "real anomalies from baseline noise (confirmed empirically "
+                "on 2026-08-27 with a 30-sample run). Re-collect a longer "
+                "baseline: BASELINE_DURATION_SECONDS=$(( "
+                f"{min_samples} * BASELINE_SAMPLE_INTERVAL_SECONDS )) "
+                "bash infra/scripts/collect-baseline.sh"
+            )
         self.X_train = df[self.features]
         self.X_scaled = self.scaler.fit_transform(self.X_train)
 

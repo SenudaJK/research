@@ -41,7 +41,7 @@ Research/
    ```bash
    bash infra/scripts/deploy-phase1.sh kind      # or minikube
    bash infra/scripts/verify-stack.sh
-   bash infra/scripts/collect-baseline.sh      # 30-minute fault-free baseline
+   bash infra/scripts/collect-baseline.sh      # ~3h20m fault-free baseline (200 samples, MIN_TRAINABLE_SAMPLES)
    bash infra/scripts/check-baseline-quality.sh
 ```
 3. See `docs/measurement-protocol.md` for MTTD/MTTR/SLO definitions and `docs/architecture.md` for versions

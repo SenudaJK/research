@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Collect fault-free baseline telemetry (metrics, logs, traces).
-# Default: 30 minutes. Override with BASELINE_DURATION_SECONDS (smoke: 180).
+# Default: 12000s (~3h20m) = 200 samples at 60s interval, sized to meet
+# MIN_TRAINABLE_SAMPLES for Isolation Forest (infra/versions.env).
+# Override with BASELINE_DURATION_SECONDS (smoke: 180 — not trainable).
 # Output: evaluation/runs/baseline/<timestamp>/
 # Quality gate: infra/scripts/check-baseline-quality.sh
 set -euo pipefail

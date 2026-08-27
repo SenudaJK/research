@@ -110,9 +110,17 @@ fi
 
 PASSED=true
 [[ "${FAILED}" -eq 0 ]] || PASSED=false
+
+# "passed" only means the data is complete/non-empty. "trainable" additionally
+# requires enough samples for Isolation Forest to produce a statistically
+# meaningful model and threshold — see MIN_TRAINABLE_SAMPLES in
+# infra/versions.env for why 1800s/30 samples was found insufficient.
 TRAINABLE=false
-if [[ "${PASSED}" == "true" && "${DURATION}" -ge 1800 ]]; then
+if [[ "${PASSED}" == "true" && "${SAMPLE_COUNT}" -ge "${MIN_TRAINABLE_SAMPLES}" ]]; then
   TRAINABLE=true
+elif [[ "${PASSED}" == "true" && "${DURATION}" -ge 1800 ]]; then
+  log "Data complete, but only ${SAMPLE_COUNT} samples (< MIN_TRAINABLE_SAMPLES=${MIN_TRAINABLE_SAMPLES}) — not marking trainable."
+  log "Re-collect with: BASELINE_DURATION_SECONDS=$(( MIN_TRAINABLE_SAMPLES * BASELINE_SAMPLE_INTERVAL_SECONDS )) bash infra/scripts/collect-baseline.sh"
 fi
 
 mkdir -p "${RUN_DIR}/meta"
@@ -128,6 +136,7 @@ jq -n \
   --argjson slo "${SLO_OK}" \
   --argjson logs "${LOG_OK}" \
   --argjson traces "${TRACE_OK}" \
+  --argjson min_trainable_samples "${MIN_TRAINABLE_SAMPLES}" \
   --arg checked_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   '{
     passed: $passed,
@@ -135,6 +144,7 @@ jq -n \
     duration_seconds: $duration,
     checked_at: $checked_at,
     samples: $samples,
+    min_trainable_samples: $min_trainable_samples,
     non_empty: {
       red_request_rate: $red,
       cpu_usage: $cpu,

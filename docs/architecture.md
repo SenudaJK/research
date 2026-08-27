@@ -177,8 +177,9 @@ Grafana ──queries──► Prometheus, Loki, Jaeger (datasources pre-provisi
 
 | Setting | Value |
 |---------|-------|
-| Duration | 1800s (30 minutes); smoke: `BASELINE_DURATION_SECONDS=180` |
+| Duration | 12000s (200 min) for a trainable run — see `MIN_TRAINABLE_SAMPLES` note below; 1800s (30 min) is quality-gate-complete but NOT trainable; smoke: `BASELINE_DURATION_SECONDS=180` |
 | Sample interval | 60s |
+| Min trainable samples | 200 (`MIN_TRAINABLE_SAMPLES` in `infra/versions.env`) — a 30-sample (1800s) run was empirically found too small for Isolation Forest to separate a 30σ outlier from baseline |
 | Output | `evaluation/runs/baseline/<run-id>/` |
 | Script | `infra/scripts/collect-baseline.sh` |
 | Quality gate | `infra/scripts/check-baseline-quality.sh` |

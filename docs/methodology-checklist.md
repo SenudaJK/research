@@ -13,7 +13,7 @@ Phase gates and evidence requirements aligned with Chapter 3 of `IM2021014.pdf`.
 - [x] Jaeger + OpenTelemetry capturing traces
 - [x] Baseline telemetry collected under normal conditions (run `infra/scripts/collect-baseline.sh`)
 - [x] Baseline MTTD/MTTR measurement procedure documented (`docs/measurement-protocol.md`)
-- [ ] Quality-gated 30-minute baseline re-collected (`meta/quality.json` `"trainable": true`) — 180 s smoke `20260817T141615Z` proved RED is non-empty
+- [ ] Quality-gated, statistically-adequate baseline collected (`meta/quality.json` `"trainable": true`, samples >= `MIN_TRAINABLE_SAMPLES`) — 180 s smoke `20260817T141615Z` proved RED is non-empty; `20260827T012747Z` (30 samples) proved the pipeline works end-to-end but was too small to freeze a usable tau
 
 **Evidence:** Trainable baseline in `evaluation/runs/baseline/<run>/` with `meta/quality.json`. Run `20260817T015611Z` is instrumentation-only (empty RED) and must not be used to train Isolation Forest.
 
