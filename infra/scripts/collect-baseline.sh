@@ -32,6 +32,7 @@ METRIC_KEYS=(
   frontend_success_rate
   cpu_usage
   memory_working_set
+  network_receive_bytes
   pod_phase
 )
 METRIC_QUERY_red_request_rate='sum(rate(boutique_traces_span_metrics_calls_total[1m]))'
@@ -40,6 +41,7 @@ METRIC_QUERY_red_avg_duration_ms='sum(rate(boutique_traces_span_metrics_duration
 METRIC_QUERY_frontend_success_rate='1 - ((sum(rate(boutique_traces_span_metrics_calls_total{service_name="frontend",span_kind="SPAN_KIND_SERVER",status_code="STATUS_CODE_ERROR"}[1m])) or vector(0)) / clamp_min(sum(rate(boutique_traces_span_metrics_calls_total{service_name="frontend",span_kind="SPAN_KIND_SERVER"}[1m])), 1e-9))'
 METRIC_QUERY_cpu_usage='sum(rate(container_cpu_usage_seconds_total{namespace="boutique"}[1m]))'
 METRIC_QUERY_memory_working_set='sum(container_memory_working_set_bytes{namespace="boutique"})'
+METRIC_QUERY_network_receive_bytes='sum(rate(container_network_receive_bytes_total{namespace="boutique"}[1m]))'
 METRIC_QUERY_pod_phase='kube_pod_status_phase{namespace="boutique"}'
 
 query_for() {
