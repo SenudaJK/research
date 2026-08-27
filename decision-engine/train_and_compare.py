@@ -38,7 +38,7 @@ def load_config(config_path):
         return yaml.safe_load(f)
 
 
-def assert_trainable(run_dir):
+def assert_trainable(run_dir, force_untrainable=False):
     quality_path = run_dir / "meta" / "quality.json"
     if not quality_path.exists():
         sys.exit(
@@ -47,13 +47,27 @@ def assert_trainable(run_dir):
             "before training (see docs/measurement-protocol.md)."
         )
     quality = json.loads(quality_path.read_text())
-    if not quality.get("trainable"):
+    if quality.get("trainable"):
+        return
+    if not force_untrainable:
         sys.exit(
             f"ERROR: {quality_path} says trainable={quality.get('trainable')!r}.\n"
             "Isolation Forest must only be trained on a quality-gated, "
-            "fault-free baseline. Collect a fresh 30-minute run with "
-            "infra/scripts/collect-baseline.sh and re-gate it."
+            "statistically adequate baseline. Collect a fresh run with "
+            "infra/scripts/collect-baseline.sh and re-gate it, or pass "
+            "--force-untrainable to explicitly override for local "
+            "pipeline testing only (never for dissertation evidence)."
         )
+    print(
+        "=" * 60 + "\n"
+        "WARNING: --force-untrainable set. This run failed the trainable "
+        f"gate ({quality.get('samples')} samples, needs "
+        f"{quality.get('min_trainable_samples', '?')}).\n"
+        "The resulting model/tau are for PIPELINE TESTING ONLY — do not "
+        "cite them or use them for a real fault dry run's conclusions.\n"
+        + "=" * 60
+    )
+    return quality
 
 
 class ModelTrainerAndComparer:
@@ -62,15 +76,15 @@ class ModelTrainerAndComparer:
         self.features = features
         self.scaler = StandardScaler()
 
-    def load_and_scale(self, data_path):
+    def load_and_scale(self, data_path, force_untrainable=False):
         df = pd.read_csv(data_path)
         missing = [c for c in self.features if c not in df.columns]
         if missing:
             sys.exit(f"ERROR: state vector CSV missing columns: {missing}")
         min_samples = self.config.get("min_training_samples", 0)
         if len(df) < min_samples:
-            sys.exit(
-                f"ERROR: {data_path} has {len(df)} rows, below "
+            message = (
+                f"{data_path} has {len(df)} rows, below "
                 f"min_training_samples={min_samples} in model-config.yaml.\n"
                 "Isolation Forest on too few samples produces shallow trees "
                 "and an unstable percentile threshold that cannot separate "
@@ -79,6 +93,18 @@ class ModelTrainerAndComparer:
                 "baseline: BASELINE_DURATION_SECONDS=$(( "
                 f"{min_samples} * BASELINE_SAMPLE_INTERVAL_SECONDS )) "
                 "bash infra/scripts/collect-baseline.sh"
+            )
+            if not force_untrainable:
+                sys.exit(f"ERROR: {message}")
+            print(f"WARNING (--force-untrainable): {message}")
+
+        n_before = len(df)
+        df = df.dropna(subset=self.features)
+        if len(df) < n_before:
+            print(
+                f"Dropped {n_before - len(df)}/{n_before} rows with a missing "
+                "feature (see 'missing_features' column) before fitting — "
+                "sklearn cannot train on NaN."
             )
         self.X_train = df[self.features]
         self.X_scaled = self.scaler.fit_transform(self.X_train)
@@ -199,16 +225,21 @@ def main():
         "--output-dir", default=None, type=Path,
         help="Where to write model artifacts (default: <run-dir>/model-artifacts/)",
     )
+    parser.add_argument(
+        "--force-untrainable", action="store_true",
+        help="Train anyway on a run whose quality.json says trainable=false. "
+             "For local pipeline testing only — never for dissertation evidence.",
+    )
     args = parser.parse_args()
 
-    assert_trainable(args.run_dir)
+    quality_override = assert_trainable(args.run_dir, force_untrainable=args.force_untrainable)
 
     config = load_config(args.config)
     output_dir = args.output_dir or (args.run_dir / "model-artifacts")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     comparer = ModelTrainerAndComparer(config, config["features"])
-    comparer.load_and_scale(args.run_dir / args.state_vector_csv)
+    comparer.load_and_scale(args.run_dir / args.state_vector_csv, force_untrainable=args.force_untrainable)
     results = comparer.train_models()
 
     joblib.dump(comparer.scaler, output_dir / "scaler.pkl")
@@ -223,8 +254,12 @@ def main():
         "percentile": percentile,
         "source_run_dir": str(args.run_dir),
         "features": config["features"],
+        "trainable_override": bool(quality_override),
+        "trainable_override_samples": quality_override.get("samples") if quality_override else None,
     }, indent=2))
     print(f"tau (Isolation Forest, p{percentile}) = {tau:.6f} -> {threshold_path}")
+    if quality_override:
+        print("NOTE: threshold.json is tagged trainable_override=true — not valid dissertation evidence.")
 
     if args.validation_csv:
         comp_df = comparer.compare_on_labeled_validation(results, args.validation_csv)

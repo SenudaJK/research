@@ -105,9 +105,23 @@ curl -sf "http://127.0.0.1:19090/api/v1/status/config" >/dev/null || die "Promet
 log "Prometheus reachable"
 
 END_TIME=$((SECONDS + BASELINE_DURATION_SECONDS))
+# TARGET_SAMPLES is the real exit condition — the loop keeps going past
+# END_TIME if needed to reach it. A flat wall-clock cutoff alone was found
+# to strand runs a few samples short of MIN_TRAINABLE_SAMPLES (189/200 on
+# 2026-08-27) from ordinary jitter (occasional slow query round-trips,
+# port-forward hiccups over a multi-hour run) — no per-sample timing fix
+# can fully predict that in advance, so the loop now targets the count
+# directly. HARD_CAP_TIME is a safety valve so a genuinely broken
+# environment (e.g. every query hanging) doesn't run forever.
+TARGET_SAMPLES=$(( (BASELINE_DURATION_SECONDS + BASELINE_SAMPLE_INTERVAL_SECONDS - 1) / BASELINE_SAMPLE_INTERVAL_SECONDS ))
+HARD_CAP_TIME=$(( SECONDS + BASELINE_DURATION_SECONDS * 2 ))
 SAMPLE=0
 
-while [[ ${SECONDS} -lt ${END_TIME} ]]; do
+while [[ ${SAMPLE} -lt ${TARGET_SAMPLES} && ${SECONDS} -lt ${HARD_CAP_TIME} ]]; do
+  if [[ ${SECONDS} -ge ${END_TIME} ]]; then
+    log "Past planned duration (${BASELINE_DURATION_SECONDS}s) but only ${SAMPLE}/${TARGET_SAMPLES} samples so far — continuing to hard cap."
+  fi
+  ITER_START=${SECONDS}
   SAMPLE=$((SAMPLE + 1))
   TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   log "Sample ${SAMPLE} at ${TS}"
@@ -142,9 +156,18 @@ while [[ ${SECONDS} -lt ${END_TIME} ]]; do
     -o "${OUTPUT_DIR}/traces/sample_${SAMPLE}.json" 2>/dev/null || \
     echo '{"data":[],"total":0}' > "${OUTPUT_DIR}/traces/sample_${SAMPLE}.json"
 
-  REMAINING=$(( END_TIME - SECONDS ))
-  if [[ ${REMAINING} -le 0 ]]; then break; fi
-  SLEEP_FOR=$(( BASELINE_SAMPLE_INTERVAL_SECONDS < REMAINING ? BASELINE_SAMPLE_INTERVAL_SECONDS : REMAINING ))
+  if [[ ${SAMPLE} -ge ${TARGET_SAMPLES} ]]; then break; fi
+  CAP_REMAINING=$(( HARD_CAP_TIME - SECONDS ))
+  if [[ ${CAP_REMAINING} -le 0 ]]; then break; fi
+  # Sleep only the interval MINUS time already spent on this sample's
+  # queries, so cadence stays close to BASELINE_SAMPLE_INTERVAL_SECONDS
+  # regardless of query overhead — a flat full-interval sleep here was the
+  # root cause of 12000s/60s producing 176 samples instead of 200 on
+  # 2026-08-27 (each iteration took ~68s: 60s sleep + ~8s query overhead).
+  ITER_ELAPSED=$(( SECONDS - ITER_START ))
+  SLEEP_INTERVAL=$(( BASELINE_SAMPLE_INTERVAL_SECONDS - ITER_ELAPSED ))
+  if [[ ${SLEEP_INTERVAL} -lt 0 ]]; then SLEEP_INTERVAL=0; fi
+  SLEEP_FOR=$(( SLEEP_INTERVAL < CAP_REMAINING ? SLEEP_INTERVAL : CAP_REMAINING ))
   sleep "${SLEEP_FOR}"
 done
 

@@ -161,8 +161,8 @@ if [[ "${PASSED}" != "true" ]]; then
   exit 1
 fi
 if [[ "${TRAINABLE}" == "true" ]]; then
-  log "PASSED — trainable 30-minute baseline: ${RUN_DIR}"
+  log "PASSED — trainable baseline (${SAMPLE_COUNT} samples): ${RUN_DIR}"
 else
-  log "PASSED — smoke/pipeline proof only (duration ${DURATION}s < 1800s). Not for training."
+  log "PASSED — smoke/pipeline proof only (${SAMPLE_COUNT} samples < MIN_TRAINABLE_SAMPLES=${MIN_TRAINABLE_SAMPLES}). Not for training."
 fi
 exit 0

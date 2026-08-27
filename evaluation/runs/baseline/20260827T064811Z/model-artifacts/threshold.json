@@ -1,0 +1,15 @@
+{
+  "tau": 0.7020720416778354,
+  "percentile": 99,
+  "source_run_dir": "evaluation/runs/baseline/20260827T064811Z",
+  "features": [
+    "cpu_util",
+    "mem_util",
+    "network_rx",
+    "log_error_rate",
+    "trace_latency_ms",
+    "trace_error_pct"
+  ],
+  "trainable_override": true,
+  "trainable_override_samples": 189
+}
