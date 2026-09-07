@@ -48,8 +48,9 @@ log "Clearing any stale experiment from this manifest..."
 kubectl delete -f "${SCENARIO_FILE}" --ignore-not-found >/dev/null
 
 log "Applying fresh..."
+APPLY_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 APPLY_REF="$(kubectl apply -f "${SCENARIO_FILE}" -o name)"
-log "Created: ${APPLY_REF}"
+log "Created: ${APPLY_REF} at ${APPLY_TS}"
 RESOURCE_TYPE="${APPLY_REF%%/*}"
 RESOURCE_NAME="${APPLY_REF##*/}"
 NAMESPACE="$(kubectl get "${RESOURCE_TYPE}" "${RESOURCE_NAME}" -A -o jsonpath='{.items[0].metadata.namespace}' 2>/dev/null || echo "${CHAOS_NAMESPACE}")"
@@ -72,6 +73,29 @@ else
   log "WARNING: desiredPhase never reported 'Run' (last seen: '${PHASE:-none}') — proceeding anyway; this is expected for one-shot faults (e.g. pod-kill)."
 fi
 
+# T0: docs/measurement-protocol.md originally cited
+# status.experiment.experimentStartTime, but that field does not exist on
+# this chart's (chaos-mesh 2.8.4) StressChaos status — confirmed empirically
+# 2026-09-07. The real, most precise field is status.instances.<key>.startTime
+# (per-target-instance, second-accurate); fall back through containerRecords'
+# first event timestamp, then the apply timestamp, if instances isn't
+# populated yet (e.g. one-shot faults that finish before this check runs).
+INSTANCE_START="$(kubectl get "${RESOURCE_TYPE}" "${RESOURCE_NAME}" -n "${NAMESPACE}" \
+  -o jsonpath='{.status.instances.*.startTime}' 2>/dev/null | tr ' ' '\n' | sort | head -1 || true)"
+RECORD_START="$(kubectl get "${RESOURCE_TYPE}" "${RESOURCE_NAME}" -n "${NAMESPACE}" \
+  -o jsonpath='{.status.experiment.containerRecords[0].events[0].timestamp}' 2>/dev/null || true)"
+if [[ -n "${INSTANCE_START}" && "${INSTANCE_START}" != "1970-01-01T00:00:00Z" ]]; then
+  T0="${INSTANCE_START}"
+  T0_SOURCE="status.instances.*.startTime"
+elif [[ -n "${RECORD_START}" ]]; then
+  T0="${RECORD_START}"
+  T0_SOURCE="status.experiment.containerRecords[0].events[0].timestamp"
+else
+  T0="${APPLY_TS}"
+  T0_SOURCE="apply_timestamp_fallback"
+fi
+log "T0 = ${T0} (source: ${T0_SOURCE})"
+
 RESTARTS_BEFORE="$(jaeger_restart_count)"
 log "Jaeger restart count before capture: ${RESTARTS_BEFORE}"
 
@@ -85,6 +109,17 @@ RUN_ID_FILE="${ROOT_DIR}/${BASELINE_OUTPUT_DIR}/.last_run_id"
 RUN_ID="$(cat "${RUN_ID_FILE}")"
 RUN_DIR="${ROOT_DIR}/${BASELINE_OUTPUT_DIR}/${RUN_ID}"
 log "Fault-window run: ${RUN_ID} (${RUN_DIR})"
+
+cat > "${RUN_DIR}/meta/t0.json" <<EOF
+{
+  "t0": "${T0}",
+  "t0_source": "${T0_SOURCE}",
+  "scenario_file": "${SCENARIO_FILE}",
+  "resource_ref": "${APPLY_REF}",
+  "resource_namespace": "${NAMESPACE}"
+}
+EOF
+log "T0 recorded: ${RUN_DIR}/meta/t0.json"
 
 RESTARTS_AFTER="$(jaeger_restart_count)"
 log "Jaeger restart count after capture: ${RESTARTS_AFTER}"

@@ -38,7 +38,19 @@ local_outlier_factor:
 # tau = the (threshold_percentile)th percentile of Isolation Forest anomaly
 # scores on the training (fault-free) baseline. See "MTTD — Run B" in
 # docs/measurement-protocol.md.
-threshold_percentile: 99
+#
+# Changed 99 -> 95 on 2026-09-07. Rationale (decided from the TRAINING
+# distribution alone, not by fitting to any specific fault trial): with 6
+# features and a random-feature-per-split Isolation Forest, p99 sat almost
+# at the training score ceiling (0.715 out of a 0.33-0.73 range on a real
+# 197-sample baseline) and failed to flag a genuine ~21-sigma single-feature
+# CPU anomaly during a clean scenario-01 trial (20260907T021502Z). p95
+# accepts a higher, but still deliberate, ~5% false-positive rate on
+# healthy baseline data as an explicit design tradeoff favoring recall.
+# This was NOT chosen by picking whatever value made that trial pass —
+# it must be validated against a FRESH, independent fault trial before
+# being treated as confirmed (see docs/experiment-log.md for that result).
+threshold_percentile: 95
 
 # Minimum State Vector rows required to train. Discovered 2026-08-27: a
 # 30-sample baseline produced an Isolation Forest that could not separate a

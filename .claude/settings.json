@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(kubectl get *)"
+      "Bash(kubectl get *)",
+      "Bash(python3 decision-engine/train_and_compare.py --run-dir evaluation/runs/baseline/20260906T023729Z)",
+      "Bash(python3 -c \"import kopf, kubernetes; print\\('kopf + kubernetes client available'\\)\")",
+      "Bash(python3 -m pip install --quiet --user -r operator/requirements.txt)",
+      "Bash(python3 -c \"import kopf, kubernetes; print\\('OK'\\)\")"
     ]
   }
 }

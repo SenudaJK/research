@@ -1,0 +1,7 @@
+{
+  "t0": "2026-09-07T04:20:28Z",
+  "t0_source": "status.instances.*.startTime",
+  "scenario_file": "evaluation/scenarios/scenario-01-cpu-starvation.yaml",
+  "resource_ref": "stresschaos.chaos-mesh.org/scenario-01-cpu-starvation",
+  "resource_namespace": "chaos-mesh"
+}

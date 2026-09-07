@@ -25,12 +25,12 @@ Phase gates and evidence requirements aligned with Chapter 3 of `IM2021014.pdf`.
 
 **Goal:** Unified State Vector and Isolation Forest detecting gray failures.
 
-- [ ] State vector schema defined (`fusion-engine/`)
-- [ ] Prometheus, Loki, Jaeger data ingested and normalized
-- [ ] Sliding-window temporal alignment implemented
-- [ ] Isolation Forest trained on fault-free baseline data
-- [ ] Anomaly scores exposed via API or event stream
-- [ ] At least one injected fault detected in dry run
+- [x] State vector schema defined (`fusion-engine/README.md`, `fusion-engine/build_state_vector.py`)
+- [x] Prometheus, Loki, Jaeger data ingested and normalized (`fusion-engine/build_state_vector.py`, parses `collect-baseline.sh` output — not a live streaming ingest)
+- [ ] Sliding-window temporal alignment implemented (current fusion is per-sample instant queries at the baseline's cadence, not a true dt-wide sliding window per `docs/architecture.md`)
+- [x] Isolation Forest trained on fault-free baseline data (`evaluation/runs/baseline/20260906T023729Z`, 197/200 clean rows, quality-gated)
+- [ ] Anomaly scores exposed via API or event stream (currently CLI-only: `decision-engine/score.py`, `orchestrator.py`)
+- [x] At least one injected fault detected in dry run — 2026-09-07, scenario-01 (CPU starvation), 3/4 rows detected, confirmed on data independent of the trial used to set `tau`. See `docs/experiment-log.md`.
 
 **Evidence:** Training data, model artifacts, detection logs
 

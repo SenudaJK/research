@@ -1,12 +1,34 @@
+"""
+Statistical comparison of Run A (native Kubernetes) vs Run B (framework)
+chaos trial results — MTTD/MTTR summary table and publication charts.
+
+Ground rule: this must only ever run against a real experiment_results.csv
+produced by evaluation/analysis/run_campaign.py (or hand-assembled from
+docs/experiment-log.md entries per docs/measurement-protocol.md). It used
+to auto-generate synthetic mock data and print a full statistical summary
++ charts from it whenever the CSV was missing, with no warning that the
+numbers were fake — a real research-integrity risk if run absentmindedly
+near a deadline. That path now requires --synthetic-smoke-test explicitly
+and labels its output as non-evidence, mirroring decision-engine/train_and_compare.py.
+"""
+import argparse
 import os
+import sys
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+REQUIRED_COLUMNS = {"Scenario_ID", "Run_Type", "MTTD", "MTTR", "Success"}
+
+
 class AcademicDataAnalyser:
     def __init__(self, results_csv):
         self.df = pd.read_csv(results_csv)
+        missing = REQUIRED_COLUMNS - set(self.df.columns)
+        if missing:
+            sys.exit(f"ERROR: {results_csv} missing columns: {missing}")
         sns.set_theme(style="whitegrid")
 
     def print_statistical_summary(self):
@@ -78,20 +100,47 @@ class AcademicDataAnalyser:
         plt.close()
         print(f"[Visualise] Saved distribution plot to '{output_path}'")
 
-if __name__ == "__main__":
-    # Create mock experimental data if the CSV doesn't exist yet for demo run
-    if not os.path.exists("experiment_results.csv"):
-        mock_scenarios = ["S1_CPU_Starvation", "S2_Memory_Leak", "S4_Network_Latency"]
-        mock_data = []
-        for s in mock_scenarios:
-            for _ in range(10): # 10 runs each
-                # Run A (Legacy K8s is slow or times out on gray failures)
-                mock_data.append({"Scenario_ID": s, "Run_Type": "Run A (Legacy)", "MTTD": 300.0, "MTTR": 300.0, "Success": False})
-                # Run B (Our system is fast)
-                mock_data.append({"Scenario_ID": s, "Run_Type": "Run B (Proposed)", "MTTD": np.random.normal(4.2, 0.5), "MTTR": np.random.normal(12.5, 1.2), "Success": True})
-        pd.DataFrame(mock_data).to_csv("experiment_results.csv", index=False)
+def _write_synthetic_smoke_test_csv(path):
+    print("=" * 60)
+    print("SYNTHETIC SMOKE TEST — NOT RESEARCH EVIDENCE")
+    print("Data below is randomly generated, not measured from real chaos trials.")
+    print("Do not cite these numbers or charts in the dissertation/checkpoint.")
+    print("=" * 60)
+    mock_scenarios = ["S1_CPU_Starvation", "S2_Memory_Leak", "S4_Network_Latency"]
+    mock_data = []
+    for s in mock_scenarios:
+        for _ in range(10):
+            mock_data.append({"Scenario_ID": s, "Run_Type": "Run A (Legacy)", "MTTD": 300.0, "MTTR": 300.0, "Success": False})
+            mock_data.append({"Scenario_ID": s, "Run_Type": "Run B (Proposed)", "MTTD": np.random.normal(4.2, 0.5), "MTTR": np.random.normal(12.5, 1.2), "Success": True})
+    pd.DataFrame(mock_data).to_csv(path, index=False)
 
-    analyser = AcademicDataAnalyser("experiment_results.csv")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--results-csv", default="experiment_results.csv",
+        help="Real experiment_results.csv from evaluation/analysis/run_campaign.py "
+             "or hand-assembled from docs/experiment-log.md.",
+    )
+    parser.add_argument(
+        "--synthetic-smoke-test", action="store_true",
+        help="Generate random placeholder data if --results-csv doesn't exist, "
+             "purely to sanity-check this script's plotting/summary code before "
+             "real campaign data exists. Output is labeled non-evidence.",
+    )
+    args = parser.parse_args()
+
+    if not os.path.exists(args.results_csv):
+        if not args.synthetic_smoke_test:
+            sys.exit(
+                f"ERROR: {args.results_csv} not found. Run the real chaos campaign "
+                "first (evaluation/analysis/run_campaign.py), or pass "
+                "--synthetic-smoke-test to sanity-check this script's plotting "
+                "code with clearly-labeled placeholder data."
+            )
+        _write_synthetic_smoke_test_csv(args.results_csv)
+
+    analyser = AcademicDataAnalyser(args.results_csv)
     analyser.print_statistical_summary()
     analyser.plot_mttr_comparison()
     analyser.plot_mttd_distribution()

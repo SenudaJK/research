@@ -16,7 +16,7 @@ Isolation Forest scores are **not** used to define recovery. Recovery is an SLO.
 
 | Symbol | Meaning | Source |
 |--------|---------|--------|
-| \(T_0\) | Fault start | Chaos Mesh experiment `status.experimentStartTime` (UTC). If absent, use the apply timestamp recorded in `docs/experiment-log.md`. |
+| \(T_0\) | Fault start | Chaos Mesh `status.instances.<key>.startTime` (UTC) — corrected 2026-09-07; `status.experimentStartTime` does not exist on this chart's (chaos-mesh 2.8.4) resource status, confirmed empirically. Falls back to `status.experiment.containerRecords[0].events[0].timestamp`, then the `kubectl apply` timestamp, if `instances` isn't populated yet (e.g. one-shot faults). Automated by `infra/scripts/run-fault-dry-run.sh`, which records the value and its source in `<run-dir>/meta/t0.json`. |
 | \(T_d\) | Detection time | First sample window that satisfies the **detection rule** for that run condition (below). |
 | \(T_r\) | Recovery time | First time the **frontend SLO** is met for **two consecutive 60 s windows** after \(T_0\). |
 | \(T_e\) | Fault end / trial end | Chaos Mesh experiment end, or \(T_0 + 10\) min timeout, whichever is first. |

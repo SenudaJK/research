@@ -1,10 +1,10 @@
 {
-  "run_id": "20260907T013802Z",
+  "run_id": "20260907T042028Z",
   "phase": "sense",
   "condition": "fault-free-baseline",
   "protocol": "docs/measurement-protocol.md",
-  "duration_seconds": 12000,
-  "sample_interval_seconds": 60,
+  "duration_seconds": 120,
+  "sample_interval_seconds": 30,
   "boutique_version": "v0.10.6",
   "boutique_namespace": "boutique",
   "observability_namespace": "observability",
@@ -19,6 +19,6 @@
     "pod_phase"
   ],
   "log_selector": "{namespace=\"boutique\"}",
-  "started_at": "2026-09-07T01:38:02Z",
-  "ended_at": "2026-09-07T01:58:27Z"
+  "started_at": "2026-09-07T04:20:28Z",
+  "ended_at": "2026-09-07T04:22:03Z"
 }
