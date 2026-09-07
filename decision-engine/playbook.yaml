@@ -1,0 +1,26 @@
+# Phase 3 rule playbook — vertical slice covering scenario-01 only.
+# Maps a detected anomaly to a deterministic recovery action. A rule
+# matches when anomaly_score > tau AND its trigger_feature is the feature
+# with the largest |z-score| vs the training baseline's mean/std (see
+# orchestrator.py's match_rule()) — this is the "matched rule" that
+# RQ2 explainability logs require.
+#
+# Extend this file, decision-engine/orchestrator.py's action handling, and
+# operator/handlers.py TOGETHER as more of the 12 scenarios' recovery
+# actions (Table I, "Final Disseration for ICTAC.md") are built out.
+rules:
+  - rule_id: R1-cpu-starvation-scale
+    description: >
+      CPU starvation on checkoutservice (scenario-01) detected via elevated
+      cpu_util relative to baseline -> scale up replicas to absorb load.
+      Matches Table I's S1 recovery: "Scale checkout pod replicas."
+    trigger_feature: cpu_util
+    target:
+      kind: Deployment
+      name: checkoutservice
+      namespace: boutique
+    action: scale
+    scale_replicas: 3
+    explanation_template: >
+      Scaling {name} to {replicas} replicas: cpu_util z-score {zscore:.1f}
+      vs baseline (anomaly score {score:.3f} > tau {tau:.3f}), matched rule {rule_id}.

@@ -176,5 +176,11 @@ kubectl top pods -n "${BOUTIQUE_NAMESPACE}" 2>/dev/null > "${OUTPUT_DIR}/meta/bo
 
 log "Baseline collection complete: ${OUTPUT_DIR}"
 log "Samples collected: ${SAMPLE}"
+
+# Record the run id/path so automation (infra/scripts/run-training-pipeline.sh,
+# infra/scripts/run-fault-dry-run.sh) never has to parse this script's log
+# output or have a run id pasted in by hand.
+echo "${RUN_ID}" > "${ROOT_DIR}/${BASELINE_OUTPUT_DIR}/.last_run_id"
+
 log "Running quality gate..."
 bash "${SCRIPT_DIR}/check-baseline-quality.sh" "${OUTPUT_DIR}"

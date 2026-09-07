@@ -8,29 +8,45 @@ allInOne:
   image:
     repository: jaegertracing/all-in-one
     tag: "1.64.0"
-  # Discovered 2026-08-27: with no memory limit and unbounded in-memory trace
-  # storage, Jaeger grew until it triggered a NODE-WIDE (not container-scoped)
-  # kernel OOM after ~10 days of continuous load-generator traffic — 11
-  # restarts logged, each one silently wiping all stored traces and each OOM
-  # event a node-wide resource crisis capable of perturbing ANY pod's
-  # metrics at an untimestamped moment, independent of any chaos experiment.
-  # A memory limit forces a scoped, cgroup-contained OOMKill of Jaeger alone
-  # instead of the kernel picking a victim process cluster-wide.
+  # History (2026-08-27 -> 2026-09-06): pure in-memory storage with no
+  # resource limit caused a NODE-WIDE kernel OOM after ~10 days. Adding a
+  # 512Mi/1Gi limit + MEMORY_MAX_TRACES contained the crash to Jaeger's own
+  # container (good), but restarts kept recurring every ~15-30 minutes
+  # regardless of the memory limit or trace cap chosen — doubling both only
+  # roughly doubled survival time, which means growth was rate-based (some
+  # steady per-minute allocation, e.g. Go runtime/gRPC/span metadata
+  # overhead), not capped by the "memory" backend's max-traces eviction as
+  # intended. Tuning those two numbers further was treating the symptom.
+  # Root fix: switched storage backend below from "memory" to "badger" (an
+  # embedded LSM-tree store), which flushes to disk instead of keeping
+  # everything RAM-resident, so its memory footprint is naturally bounded
+  # regardless of trace volume or how long the process has been running.
   resources:
     limits:
       cpu: 500m
-      memory: 1Gi
+      memory: 512Mi
     requests:
       cpu: 100m
       memory: 256Mi
-  # MEMORY_MAX_TRACES bounds the in-memory storage so it stops growing
-  # instead of relying on the resource limit above as the only backstop.
-  extraEnv:
-    - name: MEMORY_MAX_TRACES
-      value: "20000"
+  # Bounds on-disk badger retention so it doesn't grow unbounded over a
+  # multi-day cluster lifetime. 1h is far more than any single sample/dry-run
+  # window needs. Set via CLI arg, not storage.badger.extraEnv — the chart's
+  # own badger.env helper (_helpers.tpl) has a template bug where combining
+  # extraEnv with ephemeral:true renders two YAML entries onto one line
+  # ("value: \"true\"- name: BADGER_SPAN_STORE_TTL"), breaking `helm
+  # template`/`helm upgrade` entirely. Confirmed via `helm template` locally
+  # against chart 3.4.1 on 2026-09-06 before choosing this workaround.
+  args:
+    - "--badger.span-store-ttl=1h"
 
 storage:
-  type: memory
+  type: badger
+  badger:
+    # emptyDir-backed (no PVC) — traces are consumed near-real-time by
+    # fusion-engine's queries (last ~1-2 min), so losing history on a pod
+    # restart is acceptable; the point of this fix is avoiding restarts in
+    # the first place, not preserving trace history across them.
+    ephemeral: true
 
 collector:
   enabled: false

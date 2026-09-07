@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "trainable": false,
+  "duration_seconds": 1200,
+  "checked_at": "2026-09-06T09:51:30Z",
+  "samples": 20,
+  "min_trainable_samples": 200,
+  "non_empty": {
+    "red_request_rate": 20,
+    "cpu_usage": 20,
+    "memory_working_set": 20,
+    "red_avg_duration_ms": 20,
+    "frontend_success_rate": 20,
+    "boutique_logs": 20,
+    "jaeger_services": 20
+  }
+}
