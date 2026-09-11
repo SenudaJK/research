@@ -122,15 +122,21 @@ def wait_for_active(resource_type, resource_name, namespace):
     return False
 
 
-def capture_t0(resource_type, resource_name, namespace, apply_ts):
-    instance_starts = sh(
-        f"kubectl get {resource_type} {resource_name} -n {namespace} "
-        "-o jsonpath='{.status.instances.*.startTime}'",
-        check=False,
-    )
-    candidates = sorted(t for t in instance_starts.split() if t and t != "1970-01-01T00:00:00Z")
-    if candidates:
-        return candidates[0], "status.instances.*.startTime"
+def capture_t0(resource_type, resource_name, namespace, apply_ts, retries=5, retry_delay=1.5):
+    # status.instances is often not populated the instant desiredPhase flips to
+    # "Run" (observed 2026-09-07, Run A/Iteration 1) — poll briefly before
+    # falling back to the less precise sources below.
+    for attempt in range(retries):
+        instance_starts = sh(
+            f"kubectl get {resource_type} {resource_name} -n {namespace} "
+            "-o jsonpath='{.status.instances.*.startTime}'",
+            check=False,
+        )
+        candidates = sorted(t for t in instance_starts.split() if t and t != "1970-01-01T00:00:00Z")
+        if candidates:
+            return candidates[0], "status.instances.*.startTime"
+        if attempt < retries - 1:
+            time.sleep(retry_delay)
     record_start = sh(
         f"kubectl get {resource_type} {resource_name} -n {namespace} "
         "-o jsonpath='{.status.experiment.containerRecords[0].events[0].timestamp}'",
@@ -143,6 +149,26 @@ def capture_t0(resource_type, resource_name, namespace, apply_ts):
 
 def cleanup_scenario(scenario_file):
     sh(f"kubectl delete -f {scenario_file} --ignore-not-found", check=False)
+
+
+def deployment_replica_snapshot(namespace="boutique"):
+    out = sh(f"kubectl get deployment -n {namespace} -o json", check=False)
+    if not out:
+        return {}
+    items = json.loads(out).get("items", [])
+    return {d["metadata"]["name"]: d["spec"]["replicas"] for d in items}
+
+
+def restore_replicas(namespace, pre_fault_replicas):
+    """Scale any deployment the trial (e.g. a Run B scale action) left at a
+    different replica count back to its pre-fault value, so the next trial
+    starts from a clean baseline. Previously done manually (see
+    docs/experiment-log.md, Run B/Iteration 1 notes)."""
+    current = deployment_replica_snapshot(namespace)
+    for name, replicas in pre_fault_replicas.items():
+        if current.get(name) != replicas:
+            sh(f"kubectl scale deployment {name} -n {namespace} --replicas={replicas}", check=False)
+            log(f"Restored deployment/{name} to {replicas} replicas (was {current.get(name)})")
 
 
 # --- Telemetry sampling (mirrors fusion-engine/build_state_vector.py) ---
@@ -189,13 +215,41 @@ def teardown_port_forwards(procs):
         p.terminate()
 
 
-def prom_query(query):
+def prom_query(query, eval_time=None):
     try:
-        r = requests.get("http://127.0.0.1:19090/api/v1/query", params={"query": query}, timeout=5)
+        params = {"query": query}
+        if eval_time is not None:
+            params["time"] = eval_time
+        r = requests.get("http://127.0.0.1:19090/api/v1/query", params=params, timeout=5)
         result = r.json()["data"]["result"]
         return float(result[0]["value"][1]) if result else None
     except Exception:
         return None
+
+
+def compute_availability(t0, end_time):
+    """Availability over [t0, end_time] per docs/measurement-protocol.md:
+    successful frontend server spans / all frontend server spans, computed
+    directly from the spanmetrics counters (not approximated from sampled
+    frontend_success_rate, which was the prior gap noted in the experiment
+    log)."""
+    duration_s = int((end_time - t0).total_seconds())
+    if duration_s <= 0:
+        return None
+    end_ts = end_time.timestamp()
+    total = prom_query(
+        'sum(increase(boutique_traces_span_metrics_calls_total{'
+        f'service_name="frontend",span_kind="SPAN_KIND_SERVER"}}[{duration_s}s]))',
+        eval_time=end_ts,
+    )
+    if not total:
+        return None
+    errors = prom_query(
+        'sum(increase(boutique_traces_span_metrics_calls_total{'
+        f'service_name="frontend",span_kind="SPAN_KIND_SERVER",status_code="STATUS_CODE_ERROR"}}[{duration_s}s]))',
+        eval_time=end_ts,
+    ) or 0.0
+    return 1.0 - (errors / total)
 
 
 def log_error_rate():
@@ -403,6 +457,7 @@ def main():
     log(f"Jaeger restart count before trial: {restarts_before}")
 
     pre_fault_snapshot = boutique_pod_snapshot()
+    pre_fault_replicas = deployment_replica_snapshot("boutique")
 
     log("Clearing stale experiment and applying fresh...")
     apply_ts = now_iso()
@@ -422,6 +477,7 @@ def main():
     td_signal = None
     tr = None
     acted = False
+    availability = None
 
     try:
         start = time.time()
@@ -463,9 +519,14 @@ def main():
 
             iter_elapsed = time.time() - iter_start
             time.sleep(max(0, SAMPLE_INTERVAL_SECONDS - iter_elapsed))
+
+        te_dt = datetime.fromtimestamp(t0.timestamp() + args.timeout_seconds, tz=timezone.utc)
+        availability_end = tr or te_dt
+        availability = compute_availability(t0, availability_end)
     finally:
         teardown_port_forwards(port_forwards)
         cleanup_scenario(args.scenario)
+        restore_replicas("boutique", pre_fault_replicas)
 
     te = t0.timestamp() + args.timeout_seconds
     tr_censored = tr is None
@@ -489,6 +550,7 @@ def main():
         "tr_censored": tr_censored,
         "mttd_seconds": mttd,
         "mttr_seconds": mttr,
+        "availability": availability,
         "jaeger_restarts_before": restarts_before,
         "jaeger_restarts_after": restarts_after,
         "trial_valid": valid,
@@ -509,6 +571,7 @@ def main():
     print(f"Tr: {result['tr']} (censored={tr_censored})")
     print(f"MTTD: {mttd:.1f}s")
     print(f"MTTR: {mttr:.1f}s")
+    print(f"Availability: {availability:.4f}" if availability is not None else "Availability: n/a")
     print(f"Trial valid (no Jaeger restart during capture): {valid}")
     print(f"Saved: {out_path}")
     if not valid:

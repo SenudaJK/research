@@ -140,6 +140,16 @@ For RQ1 (Phase 2), compute the same matrix four ways on the **same** windows:
 metrics-only, logs-only, traces-only, and fused State Vector. That is the
 unimodal vs multi-modal comparison.
 
+## Availability implementation note (2026-09-11)
+
+`evaluation/analysis/run_trial.py` computes availability directly from the
+`boutique_traces_span_metrics_calls_total` counters via Prometheus
+`increase(...[Ns])` evaluated at `max(T_r, T_e)`, over the exact `[T_0, ...]`
+window — not approximated from the 60 s-sampled `frontend_success_rate`
+used for the recovery check. The two are expected to diverge slightly since
+one is instantaneous-rate-based and the other integrates real span counts
+over the whole window.
+
 ## What is recorded per trial
 
 Every chaos iteration writes one block to `docs/experiment-log.md` and raw
