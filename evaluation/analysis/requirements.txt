@@ -1,0 +1,8 @@
+numpy
+pandas
+joblib
+pyyaml
+requests
+kubernetes
+matplotlib
+seaborn

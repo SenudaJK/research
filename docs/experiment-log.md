@@ -67,3 +67,45 @@ Definitions: `docs/measurement-protocol.md`.
 - **Notes:**
   - Confirmed empirically that `status.experimentStartTime` (the field named in the original `docs/measurement-protocol.md`) does not exist on StressChaos's status in chaos-mesh 2.8.4. The real field is `status.instances.<key>.startTime`; `docs/measurement-protocol.md` and `run-fault-dry-run.sh` were both corrected same-day.
   - This is the second scenario-01 trial to independently confirm detection at p95 (see the prior entry above), on different fault-window data each time.
+
+## Scenario 1 - CPU Starvation - Run A - Iteration 1
+
+- **Date:** 2026-09-07
+- **T0 fault start (UTC):** 2026-09-07T13:27:08.658233Z (source: apply_timestamp_fallback — `status.instances` wasn't populated by the time T0 was captured for this trial; see `evaluation/analysis/run_trial.py`)
+- **Td detection (UTC):** 2026-09-07T13:27:14.715901Z
+- **Tr recovery (UTC):** 2026-09-07T13:28:14.350380Z
+- **Te trial end (UTC):** n/a (recovered before the 300s timeout used for this trial)
+- **MTTD (Td − T0):** 6.1s
+- **MTTR (Tr − T0):** 65.7s
+- **Availability:** not computed this trial (frontend_success_rate sampled at 1.0 then 0.992; a proper span-count-based availability calculation per `docs/measurement-protocol.md` is not yet implemented in `run_trial.py` — see Notes)
+- **Detection outcome:** TP (native Run A signal fired inside the fault window)
+- **Run A signal:** pod-not-ready
+- **Censored:** no
+- **Notes:**
+  - First trial run through the new `evaluation/analysis/run_trial.py`, the first script in this repo that measures Tr/MTTR (not just detection). Trial confirmed valid — Jaeger restart count unchanged (4->4) throughout.
+  - `cpu_util` at the second sample (t+66s) was 0.600 vs baseline mean 0.145 — the fault was genuinely active and strong — yet `frontend_success_rate` barely moved (1.0 -> 0.992), which is why recovery registered so quickly: this fault type stresses the backend without translating into failed frontend requests at this load level. Worth noting for RQ3 discussion: SLO-based recovery may under-measure the real impact of resource-starvation faults that manifest as latency rather than errors.
+  - The `pod-not-ready` signal at t+6s is suspiciously fast for a CPU stress fault and is more likely a transient readiness-probe flap caused by Chaos Mesh's chaos-daemon injecting into the container's process namespace, not the CPU stress itself. Worth a second iteration to see if this is consistent or a one-off.
+  - Raw sample data: `evaluation/runs/trials/scenario-01-cpu-starvation-RunA-20260907T132814.679824Z.json`
+  - Known gaps in `run_trial.py` to fix before treating this as final campaign data: (1) availability isn't computed from raw span counts per the protocol's exact formula, just approximated via the sampled success-rate; (2) T0 fell back to the apply timestamp rather than the more precise `status.instances` field this time — worth investigating why the instance field wasn't populated yet at the check.
+
+## Scenario 1 - CPU Starvation - Run B - Iteration 1 (rule-matching fix validation)
+
+- **Date:** 2026-09-07
+- **Model:** `evaluation/runs/baseline/20260906T023729Z/model-artifacts`, tau (p95) = 0.516964
+- **T0 fault start (UTC):** 2026-09-07T13:52:54Z (source: `status.instances.*.startTime`)
+- **Td detection (UTC):** 2026-09-07T13:53:00.925602Z
+- **Tr recovery (UTC):** 2026-09-07T13:54:00.711889Z
+- **Te trial end (UTC):** n/a (recovered before the 300s timeout)
+- **MTTD (Td − T0):** 6.9s
+- **MTTR (Tr − T0):** 66.7s
+- **Availability:** not computed this trial (same gap as the Run A entry above)
+- **Detection outcome:** TP
+- **Run B score / τ:** 0.559 at Td vs τ=0.516964; 0.687 at the sample that matched a rule (t+67s)
+- **Rule matched:** R1-cpu-starvation-scale, matched on the SECOND sample (cpu_util z=22.19) — the first anomalous sample (t+7s) scored above tau but only `log_error_rate` (z=12.71) exceeded the match threshold at that instant, and `log_error_rate` has no playbook rule
+- **Action taken:** scale — **executed for real** (`operator/handlers.py`, not a manual test): `RemediationAction/r1-cpu-starvation-scale-1788789240`, checkoutservice scaled 1 -> 3, `status.phase=Succeeded`
+- **Censored:** no
+- **Notes:**
+  - This is the first fully autonomous closed-loop trial in the project: detection, rule matching, CR creation, and operator execution all happened without any manual CR creation — compare to the manual `live-test-scale-001` test on 2026-09-07 earlier the same day, which proved the mechanism but wasn't a real detection-triggered action.
+  - This trial is the second attempt at Run B/Iteration 1; the first attempt (same T0 window structure, different timestamps) hit two real bugs, both fixed same-day before this run: (1) rule matching only considered the single most-deviated feature overall, so a `log_error_rate` spike (present at fault injection in every scenario-01 trial so far — worth investigating as a real, consistent side effect of Chaos Mesh's injection process, not noise) blocked a `cpu_util`-triggered rule from ever matching; (2) once `Td` latched on the first anomalous sample, the code never retried rule-matching on later samples even though `cpu_util` became overwhelmingly significant (z=22) one sample later. Both fixes are in `decision-engine/orchestrator.py`, `evaluation/analysis/run_trial.py`, and `decision-engine/model-config.yaml` (`rule_match_z_threshold: 3.0`).
+  - checkoutservice was manually scaled back to 1 replica after this trial to restore a clean starting state for the next trial — `run_trial.py` does not yet do this automatically (known gap).
+  - Direct comparison to Run A/Iteration 1 above: MTTD is nearly identical (6.9s vs 6.1s — both conditions detect fast for this fault type), but this is not yet a meaningful MTTR comparison, since Run A's fast "recovery" was really the SLO barely dipping (1.0 -> 0.992) rather than the operator's scale-up meaningfully mattering. A fault type/scenario where the SLO is genuinely and sustainedly impacted is needed to show Run B's actuation actually shortens recovery relative to Run A — scenario-01's fault may not be a strong test case for that comparison at this load level.

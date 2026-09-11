@@ -5,7 +5,8 @@
       "Bash(python3 decision-engine/train_and_compare.py --run-dir evaluation/runs/baseline/20260906T023729Z)",
       "Bash(python3 -c \"import kopf, kubernetes; print\\('kopf + kubernetes client available'\\)\")",
       "Bash(python3 -m pip install --quiet --user -r operator/requirements.txt)",
-      "Bash(python3 -c \"import kopf, kubernetes; print\\('OK'\\)\")"
+      "Bash(python3 -c \"import kopf, kubernetes; print\\('OK'\\)\")",
+      "Bash(python3 evaluation/analysis/run_trial.py --scenario evaluation/scenarios/scenario-01-cpu-starvation.yaml --condition A --timeout-seconds 300)"
     ]
   }
 }

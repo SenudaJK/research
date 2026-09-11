@@ -42,16 +42,33 @@ def load_playbook(playbook_path):
     return yaml.safe_load(playbook_path.read_text())["rules"]
 
 
-def match_rule(row, features, scaler, rules):
-    """Returns (rule_or_None, top_feature, top_z)."""
+def match_rule(row, features, scaler, rules, z_threshold=3.0):
+    """Returns (rule_or_None, matched_feature, matched_z).
+
+    A rule matches if ITS OWN trigger_feature's |z-score| exceeds
+    z_threshold — not only if that feature happens to be the single
+    most-deviated feature overall. Changed 2026-09-07: the old "top
+    feature only" version missed a real CPU-starvation fault because
+    log_error_rate briefly out-ranked cpu_util before the CPU stress had
+    fully ramped up, and log_error_rate has no playbook rule. Among
+    multiple qualifying rules, the one with the largest |z| wins.
+    """
     z_scores = (row[features].values - scaler.mean_) / scaler.scale_
-    top_idx = int(np.argmax(np.abs(z_scores)))
-    top_feature = features[top_idx]
-    top_z = float(z_scores[top_idx])
+    candidates = []
     for rule in rules:
-        if rule["trigger_feature"] == top_feature:
-            return rule, top_feature, top_z
-    return None, top_feature, top_z
+        idx = features.index(rule["trigger_feature"])
+        z = float(z_scores[idx])
+        if abs(z) > z_threshold:
+            candidates.append((abs(z), rule, rule["trigger_feature"], z))
+
+    top_idx = int(np.argmax(np.abs(z_scores)))
+    top_feature, top_z = features[top_idx], float(z_scores[top_idx])
+
+    if not candidates:
+        return None, top_feature, top_z
+    candidates.sort(key=lambda c: -c[0])
+    _, rule, matched_feature, matched_z = candidates[0]
+    return rule, matched_feature, matched_z
 
 
 def build_remediation_action(rule, anomaly_score, tau, top_z, execute):
@@ -95,12 +112,17 @@ def main():
     parser.add_argument("--model-dir", required=True, type=Path)
     parser.add_argument("--state-vector-csv", required=True, type=Path)
     parser.add_argument("--playbook", default=Path(__file__).parent / "playbook.yaml", type=Path)
+    parser.add_argument("--config", default=Path(__file__).parent / "model-config.yaml", type=Path)
     parser.add_argument(
         "--execute", action="store_true",
         help="Without this, the emitted RemediationAction is dryRun:true and "
              "the operator (if running) will only log/report, never act.",
     )
     args = parser.parse_args()
+
+    with open(args.config) as f:
+        config = yaml.safe_load(f)
+    z_threshold = config.get("rule_match_z_threshold", 3.0)
 
     scaler, iforest, threshold = load_model(args.model_dir)
     rules = load_playbook(args.playbook)
@@ -120,7 +142,7 @@ def main():
         score = float(anomaly_scores[i])
         if score <= tau:
             continue
-        rule, top_feature, top_z = match_rule(row, features, scaler, rules)
+        rule, top_feature, top_z = match_rule(row, features, scaler, rules, z_threshold=z_threshold)
         if rule is None:
             print(f"Row {i}: anomaly_score={score:.4f} > tau={tau:.4f}, "
                   f"top feature={top_feature} (z={top_z:.2f}) — NO MATCHING RULE in playbook.")

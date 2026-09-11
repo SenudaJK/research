@@ -58,3 +58,13 @@ threshold_percentile: 95
 # p99 threshold too close to the training max to mean anything. Mirrors
 # MIN_TRAINABLE_SAMPLES in infra/versions.env.
 min_training_samples: 200
+
+# Rule matching (decision-engine/orchestrator.py, evaluation/analysis/run_trial.py):
+# a playbook rule matches if ITS OWN trigger_feature's |z-score| exceeds this
+# threshold, not only if that feature happens to be the single most-deviated
+# feature overall. Changed 2026-09-07 after a real Run B trial: at the
+# moment of first detection, log_error_rate (z~9, no playbook rule) briefly
+# out-ranked cpu_util (z~3, the actual injected fault, which DOES have a
+# rule) simply because CPU stress hadn't fully ramped up yet — the old
+# "top feature only" logic matched nothing and the operator never acted.
+rule_match_z_threshold: 3.0
