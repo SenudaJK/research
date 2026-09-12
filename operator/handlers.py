@@ -2,12 +2,12 @@
 Phase 3 actuator — watches RemediationAction custom resources and executes
 the matched recovery action against the Kubernetes API.
 
-Vertical slice scope (first pass): only the "scale" action against a
-Deployment is implemented, proven end-to-end for scenario-01 (CPU
-starvation -> checkoutservice). Restart/evict are accepted by the CRD
-schema for forward compatibility but rejected here as unsupported — extend
-this alongside decision-engine/playbook.yaml as more of the 12 scenarios'
-recovery actions are built out (see docs/architecture.md Phase 3).
+Vertical slice scope: "scale" (scenario-01, CPU starvation ->
+checkoutservice) and "restart" (scenario-07, pod kill -> frontend rollout
+restart) are implemented against a Deployment. "evict" is accepted by the
+CRD schema for forward compatibility but rejected here as unsupported —
+extend this alongside decision-engine/playbook.yaml as more of the 12
+scenarios' recovery actions are built out (see docs/architecture.md Phase 3).
 
 Safety guards (both required by docs/methodology-checklist.md Phase 3):
   - dry-run: OPERATOR_DRY_RUN=true env var (global) or spec.dryRun (per-CR)
@@ -112,6 +112,25 @@ def _execute_scale(apps_v1, target_ref, replicas):
     return previous_replicas
 
 
+def _execute_restart(apps_v1, target_ref):
+    """Rollout-restart (scenario-07 -> R2-pod-kill-restart): patches the pod
+    template with a restartedAt annotation, the same mechanism `kubectl
+    rollout restart` uses, forcing a rolling recreation of every pod so
+    readiness probes are re-verified on fresh pods."""
+    patch_body = {
+        "spec": {
+            "template": {
+                "metadata": {
+                    "annotations": {
+                        "selfhealing.research.io/restarted-at": _now_iso(),
+                    }
+                }
+            }
+        }
+    }
+    apps_v1.patch_namespaced_deployment(target_ref["name"], target_ref["namespace"], patch_body)
+
+
 @kopf.on.create("selfhealing.research.io", "v1alpha1", "remediationactions")
 def on_remediation_action(spec, patch, logger, **_kwargs):
     target_ref = spec["targetRef"]
@@ -129,7 +148,7 @@ def on_remediation_action(spec, patch, logger, **_kwargs):
         "dry_run": dry_run,
     }
 
-    if action != "scale":
+    if action not in ("scale", "restart"):
         log_event["outcome"] = "unsupported_action"
         logger.warning(json.dumps(log_event))
         patch.status["phase"] = "Failed"
@@ -151,20 +170,32 @@ def on_remediation_action(spec, patch, logger, **_kwargs):
         log_event["outcome"] = "dry_run"
         logger.info(json.dumps(log_event))
         patch.status["phase"] = "DryRun"
-        patch.status["message"] = f"Would scale {target_ref['name']} to {spec.get('scaleReplicas')} replicas"
+        if action == "scale":
+            patch.status["message"] = f"Would scale {target_ref['name']} to {spec.get('scaleReplicas')} replicas"
+        else:
+            patch.status["message"] = f"Would restart {target_ref['name']}"
         patch.status["executedAt"] = log_event["timestamp"]
         return
 
     try:
-        previous_replicas = _execute_scale(apps_v1, target_ref, spec["scaleReplicas"])
-        _record_action(apps_v1, target_ref)
-        log_event["outcome"] = "executed"
-        log_event["previous_replicas"] = previous_replicas
-        logger.info(json.dumps(log_event))
-        patch.status["phase"] = "Succeeded"
-        patch.status["message"] = f"Scaled {target_ref['name']} {previous_replicas} -> {spec['scaleReplicas']}"
-        patch.status["executedAt"] = log_event["timestamp"]
-        patch.status["previousReplicas"] = previous_replicas
+        if action == "scale":
+            previous_replicas = _execute_scale(apps_v1, target_ref, spec["scaleReplicas"])
+            _record_action(apps_v1, target_ref)
+            log_event["outcome"] = "executed"
+            log_event["previous_replicas"] = previous_replicas
+            logger.info(json.dumps(log_event))
+            patch.status["phase"] = "Succeeded"
+            patch.status["message"] = f"Scaled {target_ref['name']} {previous_replicas} -> {spec['scaleReplicas']}"
+            patch.status["executedAt"] = log_event["timestamp"]
+            patch.status["previousReplicas"] = previous_replicas
+        else:
+            _execute_restart(apps_v1, target_ref)
+            _record_action(apps_v1, target_ref)
+            log_event["outcome"] = "executed"
+            logger.info(json.dumps(log_event))
+            patch.status["phase"] = "Succeeded"
+            patch.status["message"] = f"Restarted {target_ref['name']}"
+            patch.status["executedAt"] = log_event["timestamp"]
     except ApiException as e:
         log_event["outcome"] = "error"
         log_event["error"] = str(e)

@@ -1,0 +1,41 @@
+{
+  "scenario_file": "evaluation/scenarios/scenario-07-random-pod-kill.yaml",
+  "condition": "B",
+  "t0": "2026-09-11T02:25:11Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-11T02:26:23.015040Z",
+  "td_signal": "anomaly_score=0.5405>tau=0.5170",
+  "td_censored": false,
+  "tr": "2026-09-11T02:26:23.282552Z",
+  "tr_censored": false,
+  "mttd_seconds": 72.01504,
+  "mttr_seconds": 72.282552,
+  "availability": 1.0,
+  "jaeger_restarts_before": "7",
+  "jaeger_restarts_after": "8",
+  "trial_valid": false,
+  "samples": [
+    {
+      "timestamp": "2026-09-11T02:25:27.983856Z",
+      "cpu_util": 0.15164265509758307,
+      "mem_util": 2171.52734375,
+      "network_rx": 43.238316724723674,
+      "log_error_rate": 3.923076923076923,
+      "trace_latency_ms": null,
+      "trace_error_pct": null,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": null
+    },
+    {
+      "timestamp": "2026-09-11T02:26:22.991329Z",
+      "cpu_util": 0.09095745794438397,
+      "mem_util": 2275.29296875,
+      "network_rx": 47.866093977159665,
+      "log_error_rate": 5.061538461538461,
+      "trace_latency_ms": 1.2940803108808292,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.540458733959494
+    }
+  ]
+}

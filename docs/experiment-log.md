@@ -119,3 +119,61 @@ Addressed three known gaps flagged in the Run A/B Iteration 1 entries above, bef
 3. **Replica restoration**: `deployment_replica_snapshot()`/`restore_replicas()` capture each boutique deployment's replica count before the trial and restore any that differ afterward (in the trial's `finally` block), so a Run B scale action no longer requires the manual `kubectl scale ... --replicas=1` done after Run B/Iteration 1.
 
 Not yet re-validated with a live trial (requires a running cluster) — next scenario-01 iteration should confirm all three behave as expected before treating further data as campaign-final.
+
+## Scenario 1 - CPU Starvation - Run B - Iteration 2 (`run_trial.py` fixes validated end-to-end)
+
+- **Date:** 2026-09-11
+- **Model:** `evaluation/runs/baseline/20260906T023729Z/model-artifacts`, tau (p95) = 0.516964
+- **T0 fault start (UTC):** 2026-09-11T01:37:35Z (source: `status.instances.*.startTime`, first attempt, no retries needed)
+- **Td detection (UTC):** 2026-09-11T01:37:41.266566Z
+- **Tr recovery (UTC):** 2026-09-11T01:38:41.256237Z
+- **Te trial end (UTC):** n/a (recovered before the 600s timeout)
+- **MTTD (Td − T0):** 6.3s
+- **MTTR (Tr − T0):** 66.3s
+- **Availability:** 1.0000 (computed from real `boutique_traces_span_metrics_calls_total` span counts over `[T0, Tr]`, not approximated — see Notes)
+- **Detection outcome:** TP
+- **Run B score / τ:** 0.5778 at Td vs τ=0.516964; rule matched on the second sample (cpu_util z=23.78) — first sample's top feature was again log_error_rate (z=9.38), same pattern as Iteration 1
+- **Rule matched:** R1-cpu-starvation-scale
+- **Action taken:** scale — executed for real, `RemediationAction/r1-cpu-starvation-scale-1789090721`, checkoutservice scaled 1 -> 3, `status.phase=Succeeded`
+- **Censored:** no
+- **Notes:**
+  - First trial to validate all three `run_trial.py` fixes above together, cleanly: (1) T0 captured from `status.instances` on the first check; (2) availability computed directly from span counts, printed and saved; (3) `run_trial.py` logged `Restored deployment/checkoutservice to 1 replicas (was 3)` in its `finally` block — no manual `kubectl scale` needed afterward, confirmed both in the script's log line and independently via `kubectl get deployment`.
+  - This iteration was preceded by two discarded attempts (same day, not logged as formal iterations) that surfaced a real environment issue rather than a code bug: the custom operator (`operator/handlers.py`) had not been running at all, so an earlier trial's `RemediationAction` sat unprocessed; once the operator was started, it reconciled that backlog CR retroactively mid-way through the *next* attempt, which then hit `CooldownBlocked` on its own new CR and left checkoutservice stuck at 3 replicas. Both attempts' state (replicas, cooldown annotations) were manually cleared before this iteration. **Process takeaway:** confirm the operator is running and `kubectl get remediationaction -n boutique` shows no pending/backlogged CRs before starting a trial, not just before starting the campaign.
+  - Same MTTR caveat as Iteration 1 still applies: `frontend_success_rate` stayed at 1.0 throughout (only 2 samples were taken before the SLO-hold recovery check fired), so this fault type still isn't demonstrating the operator's action meaningfully shortening recovery — Tr is really "SLO was never broken," not "operator fixed it fast." Availability being exactly 1.0000 is consistent with this. This scenario-01 fault likely needs the RQ3 comparison made on a scenario where the frontend SLO is genuinely and sustainedly impacted (see Iteration 1 notes).
+
+## Scenario 7 - Random Pod Kill (frontend) - Run A / Run B, Iteration 1 (both inconclusive — playbook fix applied)
+
+- **Date:** 2026-09-11
+- **Run A:** T0 `2026-09-11T02:10:41Z` (source: `status.experiment.containerRecords[0].events[0].timestamp` — PodChaos has no `status.instances`). **Td: censored (600s timeout, never detected).** Tr `02:11:53Z` (MTTR 72.0s). Availability 1.0000.
+  - Raw data: `evaluation/runs/trials/scenario-07-random-pod-kill-RunA-20260911T021153.229626Z.json`
+  - **Root cause of the censor, not a bug**: a Deployment-managed pod-kill deletes the pod and creates a brand-new one (new name, `restartCount` reset to 0) rather than restarting a container in place. By the first sample (t+12s), the replacement pod was already `Running`/`Ready` — a lightweight frontend image typically becomes ready well inside 12s. `run_a_detected()`'s "pod not ready" / "restart count increased" checks never had a window to fire. This is a genuine blind spot of the frozen 60s sample cadence in `docs/measurement-protocol.md`, not something to patch in the detection code — a single transient pod-kill on a low-traffic, 1-replica service can resolve faster than this protocol can observe, in *either* condition.
+- **Run B:** T0 `2026-09-11T02:12:31Z` (same source). Td `02:12:43.39Z` (MTTD 12.4s, signal `anomaly_score=0.5660>tau=0.5170`). Tr `02:13:43.34Z` (MTTR 72.3s). Availability 1.0000.
+  - Raw data: `evaluation/runs/trials/scenario-07-random-pod-kill-RunB-20260911T021343.630824Z.json`
+  - Anomaly detected, but **no rule matched and no action executed**: top feature at Td was `log_error_rate` (z=12.63), not `trace_error_pct` — `R2-pod-kill-restart`'s original `trigger_feature` choice. The spike was transient (single sample above tau; by t+72s cpu/mem/log features were back near baseline), so there was no later sample to retry the match on, unlike scenario-01's sustained CPU stress.
+  - **Fix applied same day**: `R2-pod-kill-restart`'s `trigger_feature` changed from `trace_error_pct` to `log_error_rate` in `decision-engine/playbook.yaml`, based on this trial's actual z-scores. Not yet re-validated — next scenario-07 Run B iteration should confirm the rule now matches and the operator executes a real `restart`.
+- **Detection outcome:** Run A FN (censored), Run B TP (detection only, no matched rule this iteration)
+- **Action taken:** none in either condition
+- **Censored:** Run A MTTD; Run B no
+- **Notes:**
+  - Neither condition demonstrates a meaningful MTTD/MTTR comparison from this pair: Run A never detected at all under the protocol's cadence, and Run B detected but never acted. MTTR (72.0s vs 72.3s) is again the sampling-cadence floor (`first-sample-delay + 60s`), not a real recovery-time effect — same artifact pattern as scenario-01.
+  - Open question carried forward: even after the playbook fix, a *single* pod-kill on a 1-replica service may resolve (natively or via the operator) faster than this protocol's 60s cadence can meaningfully separate Run A from Run B — the opposite failure mode from scenario-01 (SLO never breaks) but the same practical result (no visible MTTR difference). A scenario with a longer, self-*non*-healing outage (e.g. scenario-09 volume detachment, scenario-11 DB pool exhaustion) may be necessary to get a real RQ3 signal.
+
+## Scenario 7 - Random Pod Kill (frontend) - Run B - Iteration 2 (playbook fix validated end-to-end)
+
+- **Date:** 2026-09-11
+- **Model:** `evaluation/runs/baseline/20260906T023729Z/model-artifacts`, tau (p95) = 0.516964
+- **T0 fault start (UTC):** 2026-09-11T02:33:08Z (source: `status.experiment.containerRecords[0].events[0].timestamp`)
+- **Td detection (UTC):** 2026-09-11T02:33:20.300770Z
+- **Tr recovery (UTC):** 2026-09-11T02:34:20.476626Z
+- **MTTD (Td − T0):** 12.3s
+- **MTTR (Tr − T0):** 72.5s
+- **Availability:** 1.0000
+- **Detection outcome:** TP
+- **Run B score / τ:** 0.5768 at Td vs τ=0.516964
+- **Rule matched:** R2-pod-kill-restart, matched on `log_error_rate` (z=7.41) — confirms the 2026-09-11 playbook fix (trigger_feature `trace_error_pct` -> `log_error_rate`)
+- **Action taken:** restart — executed for real, `RemediationAction/r2-pod-kill-restart-1789094000`, `status.phase=Succeeded`, `"Restarted frontend"`; confirmed via `kubectl get pods`: a *new* pod (`frontend-bb67f6b7c-wh49j`, a different ReplicaSet hash than Chaos Mesh's own pod-kill replacement) was running, proving the operator's rollout-restart genuinely fired on top of the native reschedule
+- **Censored:** no
+- **Notes:**
+  - First fully clean, uncontaminated scenario-07 Run B trial: no cooldown block, no stale CR backlog, no rule-match failure. Detection -> rule match -> real actuation, closing the loop for a second scenario (previously only scenario-01/checkoutservice-scale had been proven this cleanly).
+  - This was preceded by a discarded attempt the same day where the trial's own `RemediationAction` was `CooldownBlocked` by a separate action fired 39s earlier from an overlapping prior run — cooldown annotations were cleared before this iteration. **Same process takeaway as scenario-01**: never run two trials on the same target within `COOLDOWN_SECONDS` (default 300s) of each other without clearing state in between.
+  - Same MTTD/MTTR caveat as the earlier scenario-07 attempts still applies: this is still a single transient pod-kill on a 1-replica service, so MTTR (72.5s) is still bounded by the sampling-cadence floor rather than reflecting the operator's action meaningfully shortening a sustained outage. This trial validates the closed loop mechanically (detection -> rule -> real action), but not yet RQ3's MTTR-improvement claim — a Run A trial on this same, now-fixed setup, plus a scenario with a genuinely sustained (non-self-healing) outage, are still needed for that.

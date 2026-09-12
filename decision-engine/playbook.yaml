@@ -24,3 +24,26 @@ rules:
     explanation_template: >
       Scaling {name} to {replicas} replicas: cpu_util z-score {zscore:.1f}
       vs baseline (anomaly score {score:.3f} > tau {tau:.3f}), matched rule {rule_id}.
+
+  - rule_id: R2-pod-kill-restart
+    description: >
+      Frontend pod termination (scenario-07) detected via elevated
+      log_error_rate relative to baseline -> roll the Deployment to
+      reschedule pods and re-verify readiness probes. Matches Table I's S7
+      recovery: "Re-schedule frontend pods; verify readiness probes."
+      trigger_feature changed 2026-09-11 from trace_error_pct to
+      log_error_rate after a real (uncontaminated) Run B trial
+      (evaluation/runs/trials/scenario-07-random-pod-kill-RunB-20260911T021343.630824Z.json)
+      showed log_error_rate, not trace_error_pct, was the feature that
+      actually crossed the anomaly threshold — trace_error_pct never
+      qualified, so the rule never matched under the original choice. See
+      docs/experiment-log.md.
+    trigger_feature: log_error_rate
+    target:
+      kind: Deployment
+      name: frontend
+      namespace: boutique
+    action: restart
+    explanation_template: >
+      Restarting {name}: log_error_rate z-score {zscore:.1f} vs baseline
+      (anomaly score {score:.3f} > tau {tau:.3f}), matched rule {rule_id}.

@@ -5,11 +5,11 @@ Python with [kopf](https://kopf.readthedocs.io/) — chosen over Go/kubebuilder
 to reuse the rest of this repo's Python stack directly (joblib models,
 sklearn scoring) without a cross-language boundary.
 
-**Status: vertical slice.** Only scenario-01 (CPU starvation ->
-checkoutservice, action `scale`) is implemented end-to-end, to prove the
-Sense->Analyze->Act loop closes for real before generalizing to the other
-11 scenarios. `restart`/`evict` are in the CRD schema but rejected at
-runtime as `unsupported_action`.
+**Status: vertical slice.** scenario-01 (CPU starvation -> checkoutservice,
+action `scale`) and scenario-07 (pod kill -> frontend, action `restart`)
+are implemented end-to-end, proving the Sense->Analyze->Act loop closes for
+real before generalizing to the remaining 10 scenarios. `evict` is in the
+CRD schema but still rejected at runtime as `unsupported_action`.
 
 ## Contents
 
@@ -50,6 +50,6 @@ Safety guard tuning (env vars, both optional):
 
 ## Planned Contents
 
-- `restart`/`evict` action implementations, as more of the 12 scenarios' rules are added
+- `evict` action implementation, as more of the 12 scenarios' rules are added
 - In-cluster Deployment manifest + RBAC (ServiceAccount, ClusterRole) once the vertical slice is proven
 - Container image / Dockerfile for in-cluster operation

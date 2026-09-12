@@ -5,10 +5,11 @@
 # status so `kubectl get remediationaction -o yaml` is a complete audit
 # record on its own.
 #
-# Vertical slice scope (first pass, scenario-01 only): action enum has only
-# "scale" implemented in operator/handlers.py. Extend both this schema and
-# the operator together as more of the 12 scenarios' recovery actions are
-# added — see docs/architecture.md Phase 3.
+# Vertical slice scope: action enum has "scale" (scenario-01) and "restart"
+# (scenario-07) implemented in operator/handlers.py. "evict" is still
+# unimplemented. Extend both this schema and the operator together as more
+# of the 12 scenarios' recovery actions are added — see docs/architecture.md
+# Phase 3.
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -64,10 +65,10 @@ spec:
                 action:
                   type: string
                   description: >
-                    Only "scale" is implemented by operator/handlers.py in
-                    this vertical slice. Other values are accepted by the
-                    schema (for forward compatibility with later scenarios)
-                    but rejected at runtime as "unsupported_action".
+                    "scale" and "restart" are implemented by
+                    operator/handlers.py. "evict" is accepted by the schema
+                    (for forward compatibility with later scenarios) but
+                    rejected at runtime as "unsupported_action".
                   enum: ["scale", "restart", "evict"]
                 scaleReplicas:
                   type: integer
