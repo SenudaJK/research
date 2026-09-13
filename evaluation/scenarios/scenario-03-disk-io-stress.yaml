@@ -9,12 +9,23 @@
 # and returns a transaction ID, with no disk-backed storage at all. There is
 # no literal "payment database" to stress. This injects disk I/O stress on
 # the paymentservice container itself as the closest available proxy for
-# the paper's scenario, via StressChaos's io stressor (stress-ng --iomix)
-# rather than IOChaos, since IOChaos requires a fault-injection sidecar on a
-# mounted volume and paymentservice has no PVC to target. Document this
-# substitution in docs/experiment-log.md; if the thesis requires a literal
-# database, paymentservice must first be re-architected onto a real
-# datastore.
+# the paper's scenario.
+#
+# SECOND substitution, at the CRD level: Chaos Mesh's StressChaos
+# `spec.stressors` only defines `cpu` and `memory` blocks (verified against
+# the installed StressChaos CRD) — there is no `io` stressor type, so the
+# stress-ng `--iomix` invocation this file originally used
+# (`spec.stressors.io`) is rejected by the API server with a strict-decoding
+# error. IOChaos was ruled out for the reason above (requires a
+# fault-injection sidecar on a mounted volume; paymentservice has no PVC).
+# The workaround used here: attach raw stress-ng disk I/O flags (`--hdd`,
+# `--hdd-bytes`, `--io`) via the `cpu` stressor's `options` field, which
+# Chaos Mesh appends verbatim to the stress-ng command line it runs in the
+# target container — the `cpu.workers`/`load` values are kept minimal so the
+# actual CPU stress contributed is negligible and disk I/O dominates.
+# Document this substitution in docs/experiment-log.md; if the thesis
+# requires a literal database, paymentservice must first be re-architected
+# onto a real datastore.
 apiVersion: chaos-mesh.org/v1alpha1
 kind: StressChaos
 metadata:
@@ -28,7 +39,14 @@ spec:
     labelSelectors:
       app: paymentservice
   stressors:
-    io:
-      workers: 4
-      bytes: "256MB"
+    cpu:
+      workers: 1
+      load: 0
+      options:
+        - "--hdd"
+        - "4"
+        - "--hdd-bytes"
+        - "256M"
+        - "--io"
+        - "4"
   duration: "5m"

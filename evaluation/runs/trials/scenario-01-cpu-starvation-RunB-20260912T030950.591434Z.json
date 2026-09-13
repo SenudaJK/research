@@ -1,0 +1,41 @@
+{
+  "scenario_file": "evaluation/scenarios/scenario-01-cpu-starvation.yaml",
+  "condition": "B",
+  "t0": "2026-09-12T03:08:44Z",
+  "t0_source": "status.instances.*.startTime",
+  "td": "2026-09-12T03:08:50.368740Z",
+  "td_signal": "anomaly_score=0.6169>tau=0.5170",
+  "td_censored": false,
+  "tr": "2026-09-12T03:09:50.343298Z",
+  "tr_censored": false,
+  "mttd_seconds": 6.36874,
+  "mttr_seconds": 66.343298,
+  "availability": 1.0,
+  "jaeger_restarts_before": "11",
+  "jaeger_restarts_after": "11",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-12T03:08:50.353914Z",
+      "cpu_util": 0.4888816412591395,
+      "mem_util": 2290.125,
+      "network_rx": 39.18436330924794,
+      "log_error_rate": 4.846153846153846,
+      "trace_latency_ms": 0.9276,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.6169153961543135
+    },
+    {
+      "timestamp": "2026-09-12T03:09:50.332137Z",
+      "cpu_util": 0.4971199023524511,
+      "mem_util": 2295.671875,
+      "network_rx": 51.18231964357832,
+      "log_error_rate": 5.030769230769231,
+      "trace_latency_ms": 1.2493011363636364,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5865916557145318
+    }
+  ]
+}

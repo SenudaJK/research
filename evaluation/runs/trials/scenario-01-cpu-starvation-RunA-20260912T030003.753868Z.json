@@ -1,0 +1,39 @@
+{
+  "scenario_file": "evaluation/scenarios/scenario-01-cpu-starvation.yaml",
+  "condition": "A",
+  "t0": "2026-09-12T02:58:57Z",
+  "t0_source": "status.instances.*.startTime",
+  "td": null,
+  "td_signal": null,
+  "td_censored": true,
+  "tr": "2026-09-12T03:00:03.511843Z",
+  "tr_censored": false,
+  "mttd_seconds": 600.0,
+  "mttr_seconds": 66.511843,
+  "availability": 1.0,
+  "jaeger_restarts_before": "10",
+  "jaeger_restarts_after": "10",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-12T02:59:03.223039Z",
+      "cpu_util": 0.4860729020615859,
+      "mem_util": 2444.04296875,
+      "network_rx": 37.195675314152105,
+      "log_error_rate": 4.7846153846153845,
+      "trace_latency_ms": 1.2760896358543417,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-12T03:00:03.455899Z",
+      "cpu_util": 0.5083700939597082,
+      "mem_util": 2246.1953125,
+      "network_rx": 46.8412745832042,
+      "log_error_rate": 4.615384615384615,
+      "trace_latency_ms": 12.126635854341735,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

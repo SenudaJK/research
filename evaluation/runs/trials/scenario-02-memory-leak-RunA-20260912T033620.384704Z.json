@@ -1,0 +1,89 @@
+{
+  "scenario_file": "evaluation/scenarios/scenario-02-memory-leak.yaml",
+  "condition": "A",
+  "t0": "2026-09-12T03:30:08Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-12T03:30:20.186665Z",
+  "td_signal": "pod-not-ready",
+  "td_censored": false,
+  "tr": "2026-09-12T03:36:20.147351Z",
+  "tr_censored": false,
+  "mttd_seconds": 12.186665,
+  "mttr_seconds": 372.147351,
+  "availability": 0.602238046795524,
+  "jaeger_restarts_before": "11",
+  "jaeger_restarts_after": "11",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-12T03:30:20.137242Z",
+      "cpu_util": 0.13403825486456372,
+      "mem_util": 1968.6484375,
+      "network_rx": 46.324187919234376,
+      "log_error_rate": 5.8307692307692305,
+      "trace_latency_ms": 1.61946,
+      "trace_error_pct": 0.36,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-12T03:31:20.126944Z",
+      "cpu_util": 0.07562253921350934,
+      "mem_util": 1966.3125,
+      "network_rx": 18.600226311178883,
+      "log_error_rate": 5.8307692307692305,
+      "trace_latency_ms": 1.2687564102564104,
+      "trace_error_pct": 0.358974358974359,
+      "frontend_success_rate": 0.17322834645669294
+    },
+    {
+      "timestamp": "2026-09-12T03:32:20.127384Z",
+      "cpu_util": 0.1322266640354321,
+      "mem_util": 2181.53125,
+      "network_rx": 17.357542198199276,
+      "log_error_rate": 5.938461538461539,
+      "trace_latency_ms": 1.1218313253012047,
+      "trace_error_pct": 0.3855421686746988,
+      "frontend_success_rate": 0.1588785046728971
+    },
+    {
+      "timestamp": "2026-09-12T03:33:20.140396Z",
+      "cpu_util": 0.12280649672585775,
+      "mem_util": 2231.8046875,
+      "network_rx": 22.918511001338636,
+      "log_error_rate": 5.446153846153846,
+      "trace_latency_ms": 1.8331748071979435,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 0.15254237288135586
+    },
+    {
+      "timestamp": "2026-09-12T03:34:20.138316Z",
+      "cpu_util": 0.20470736329743736,
+      "mem_util": 2255.5,
+      "network_rx": 48.10552291820943,
+      "log_error_rate": 5.323076923076923,
+      "trace_latency_ms": 1.2368846153846154,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 0.984375
+    },
+    {
+      "timestamp": "2026-09-12T03:35:20.157587Z",
+      "cpu_util": 0.15352324671689938,
+      "mem_util": 2275.234375,
+      "network_rx": 54.18157128440328,
+      "log_error_rate": 5.092307692307692,
+      "trace_latency_ms": 1.2137047872340425,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-12T03:36:20.147308Z",
+      "cpu_util": 0.1292564167394815,
+      "mem_util": 2278.4453125,
+      "network_rx": 41.299387778451035,
+      "log_error_rate": 4.892307692307693,
+      "trace_latency_ms": 1.283602122015915,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

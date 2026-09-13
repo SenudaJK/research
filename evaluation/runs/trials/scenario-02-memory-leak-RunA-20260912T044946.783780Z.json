@@ -1,0 +1,69 @@
+{
+  "scenario_file": "evaluation/scenarios/scenario-02-memory-leak.yaml",
+  "condition": "A",
+  "t0": "2026-09-12T04:45:34Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-12T04:45:46.570930Z",
+  "td_signal": "pod-not-ready",
+  "td_censored": false,
+  "tr": "2026-09-12T04:49:46.559285Z",
+  "tr_censored": false,
+  "mttd_seconds": 12.57093,
+  "mttr_seconds": 252.559285,
+  "availability": 0.7624398073836276,
+  "jaeger_restarts_before": "12",
+  "jaeger_restarts_after": "12",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-12T04:45:46.520151Z",
+      "cpu_util": 0.13784828556782816,
+      "mem_util": 1963.98828125,
+      "network_rx": 45.337266285550946,
+      "log_error_rate": 4.769230769230769,
+      "trace_latency_ms": 0.9408355263157895,
+      "trace_error_pct": 0.18421052631578946,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-12T04:46:46.531889Z",
+      "cpu_util": 0.12340615086516322,
+      "mem_util": 2126.1953125,
+      "network_rx": 17.50752627061744,
+      "log_error_rate": 5.184615384615385,
+      "trace_latency_ms": 1.274126436781609,
+      "trace_error_pct": 0.3448275862068966,
+      "frontend_success_rate": 0.22413793103448287
+    },
+    {
+      "timestamp": "2026-09-12T04:47:46.544646Z",
+      "cpu_util": 0.18219624300203363,
+      "mem_util": 2256.8203125,
+      "network_rx": 50.859667835321545,
+      "log_error_rate": 4.846153846153846,
+      "trace_latency_ms": 1.3411220159151194,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 0.7851239669421488
+    },
+    {
+      "timestamp": "2026-09-12T04:48:46.552771Z",
+      "cpu_util": 0.14469290211628183,
+      "mem_util": 2254.02734375,
+      "network_rx": 45.15038933562846,
+      "log_error_rate": 5.723076923076923,
+      "trace_latency_ms": 1.4181121495327103,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-12T04:49:46.559242Z",
+      "cpu_util": 0.1350693687730734,
+      "mem_util": 2271.41796875,
+      "network_rx": 48.38248840556614,
+      "log_error_rate": 5.446153846153846,
+      "trace_latency_ms": 2.003362467866324,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}
