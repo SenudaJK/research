@@ -49,12 +49,20 @@ class AcademicDataAnalyser:
         # Calculate global aggregated improvements
         avg_legacy_mttr = self.df[self.df["Run_Type"] == "Run A (Legacy)"]["MTTR"].mean()
         avg_proposed_mttr = self.df[self.df["Run_Type"] == "Run B (Proposed)"]["MTTR"].mean()
-        
-        improvement = ((avg_legacy_mttr - avg_proposed_mttr) / avg_legacy_mttr) * 100
+        mttr_improvement = ((avg_legacy_mttr - avg_proposed_mttr) / avg_legacy_mttr) * 100
+
+        avg_legacy_mttd = self.df[self.df["Run_Type"] == "Run A (Legacy)"]["MTTD"].mean()
+        avg_proposed_mttd = self.df[self.df["Run_Type"] == "Run B (Proposed)"]["MTTD"].mean()
+        mttd_improvement = ((avg_legacy_mttd - avg_proposed_mttd) / avg_legacy_mttd) * 100
+
         print("\n" + "-"*50)
+        print(f"Global Average Legacy MTTD: {avg_legacy_mttd:.2f} seconds")
+        print(f"Global Average Proposed MTTD: {avg_proposed_mttd:.2f} seconds")
+        print(f"Overall MTTD Reduction: {mttd_improvement:.2f}%")
+        print("-"*50)
         print(f"Global Average Legacy MTTR: {avg_legacy_mttr:.2f} seconds")
         print(f"Global Average Proposed MTTR: {avg_proposed_mttr:.2f} seconds")
-        print(f"Overall MTTR Reduction: {improvement:.2f}% (Target: >84.2%)")
+        print(f"Overall MTTR Reduction: {mttr_improvement:.2f}%")
         print("-"*50 + "\n")
 
     def plot_mttr_comparison(self, output_path="mttr_comparison.png"):
