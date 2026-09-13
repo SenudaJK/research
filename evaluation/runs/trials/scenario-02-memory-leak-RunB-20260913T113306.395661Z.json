@@ -1,0 +1,63 @@
+{
+  "scenario_file": "evaluation/scenarios/scenario-02-memory-leak.yaml",
+  "condition": "B",
+  "t0": "2026-09-13T11:29:54Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-13T11:30:06.122097Z",
+  "td_signal": "anomaly_score=0.7639>tau=0.5170",
+  "td_censored": false,
+  "tr": "2026-09-13T11:33:06.144420Z",
+  "tr_censored": false,
+  "mttd_seconds": 12.122097,
+  "mttr_seconds": 192.14442,
+  "availability": 0.7785388127853882,
+  "jaeger_restarts_before": "22",
+  "jaeger_restarts_after": "22",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-13T11:30:06.102194Z",
+      "cpu_util": 0.21171057896998668,
+      "mem_util": 2061.44140625,
+      "network_rx": 57.059558109134265,
+      "log_error_rate": 4.461538461538462,
+      "trace_latency_ms": 1.7200786516853932,
+      "trace_error_pct": 0.449438202247191,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.7638945576033296
+    },
+    {
+      "timestamp": "2026-09-13T11:31:06.076541Z",
+      "cpu_util": 0.21625716662428549,
+      "mem_util": 2273.1953125,
+      "network_rx": 23.144250129608015,
+      "log_error_rate": 4.876923076923077,
+      "trace_latency_ms": 1.6030652818991096,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 0.2941176470588235,
+      "anomaly_score": 0.646693286245511
+    },
+    {
+      "timestamp": "2026-09-13T11:32:06.054266Z",
+      "cpu_util": 0.14828257181092844,
+      "mem_util": 2285.12109375,
+      "network_rx": 40.632502796876885,
+      "log_error_rate": 4.7384615384615385,
+      "trace_latency_ms": 1.3567147058823528,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.4778237046515304
+    },
+    {
+      "timestamp": "2026-09-13T11:33:06.136667Z",
+      "cpu_util": 0.14599700745164015,
+      "mem_util": 2305.7890625,
+      "network_rx": 45.61052831855276,
+      "log_error_rate": 5.153846153846154,
+      "trace_latency_ms": 4.019225274725275,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5710073456691109
+    }
+  ]
+}

@@ -417,10 +417,20 @@ def match_and_emit(sample, scaler, rules, score, tau, z_threshold):
     except Exception:
         kubernetes.config.load_incluster_config()
     api = kubernetes.client.CustomObjectsApi()
-    created = api.create_namespaced_custom_object(
-        group="selfhealing.research.io", version="v1alpha1",
-        namespace=target["namespace"], plural="remediationactions", body=body,
-    )
+    # _request_timeout bounds a stalled apiserver connection to a few seconds
+    # instead of hanging indefinitely — observed 2026-09-13 consuming an
+    # entire trial's 600s budget in a single loop iteration (1 sample
+    # recorded, Td/Tr forced to censor even though nothing had actually
+    # failed). See docs/experiment-log.md.
+    try:
+        created = api.create_namespaced_custom_object(
+            group="selfhealing.research.io", version="v1alpha1",
+            namespace=target["namespace"], plural="remediationactions", body=body,
+            _request_timeout=15,
+        )
+    except Exception as e:
+        log(f"RemediationAction create failed/timed out ({e}) — will retry on next sample")
+        return False
     log(f"Created RemediationAction/{created['metadata']['name']} — rule={rule['rule_id']}, "
         f"matched_feature={matched_feature} (z={matched_z:.2f})")
     return True

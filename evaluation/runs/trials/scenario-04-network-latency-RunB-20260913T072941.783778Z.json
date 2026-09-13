@@ -1,0 +1,41 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-04-network-latency.yaml",
+  "condition": "B",
+  "t0": "2026-09-13T07:28:29Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-13T07:28:41.524776Z",
+  "td_signal": "anomaly_score=0.6683>tau=0.5170",
+  "td_censored": false,
+  "tr": "2026-09-13T07:29:41.479581Z",
+  "tr_censored": false,
+  "mttd_seconds": 12.524776,
+  "mttr_seconds": 72.479581,
+  "availability": 1.0,
+  "jaeger_restarts_before": "19",
+  "jaeger_restarts_after": "19",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-13T07:28:41.507091Z",
+      "cpu_util": 0.15588604155368094,
+      "mem_util": 2278.2578125,
+      "network_rx": 40.85684240224758,
+      "log_error_rate": 4.923076923076923,
+      "trace_latency_ms": 38.81825333333333,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.6683178501424452
+    },
+    {
+      "timestamp": "2026-09-13T07:29:41.471352Z",
+      "cpu_util": 0.22313591979345054,
+      "mem_util": 2516.375,
+      "network_rx": 49.92443947672338,
+      "log_error_rate": 5.338461538461538,
+      "trace_latency_ms": 46.58770951156812,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.7301511145326245
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-04-network-latency.yaml",
+  "condition": "A",
+  "t0": "2026-09-13T06:20:44Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": null,
+  "td_signal": null,
+  "td_censored": true,
+  "tr": "2026-09-13T06:21:56.655784Z",
+  "tr_censored": false,
+  "mttd_seconds": 600.0,
+  "mttr_seconds": 72.655784,
+  "availability": 1.0,
+  "jaeger_restarts_before": "18",
+  "jaeger_restarts_after": "18",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-13T06:20:56.566694Z",
+      "cpu_util": 0.1505638519220786,
+      "mem_util": 2312.18359375,
+      "network_rx": 30.63033705282337,
+      "log_error_rate": 4.446153846153846,
+      "trace_latency_ms": 37.10140643274854,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-13T06:21:56.557696Z",
+      "cpu_util": 0.14019138829535127,
+      "mem_util": 2317.78125,
+      "network_rx": 41.271198870438745,
+      "log_error_rate": 4.923076923076923,
+      "trace_latency_ms": 34.148979591836735,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

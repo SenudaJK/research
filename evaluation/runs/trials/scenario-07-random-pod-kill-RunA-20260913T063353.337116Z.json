@@ -1,0 +1,39 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-07-random-pod-kill.yaml",
+  "condition": "A",
+  "t0": "2026-09-13T06:32:41Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-13T06:32:53.185240Z",
+  "td_signal": "pod-not-ready",
+  "td_censored": false,
+  "tr": "2026-09-13T06:33:53.084112Z",
+  "tr_censored": false,
+  "mttd_seconds": 12.18524,
+  "mttr_seconds": 72.084112,
+  "availability": 1.0,
+  "jaeger_restarts_before": "18",
+  "jaeger_restarts_after": "18",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-13T06:32:53.102674Z",
+      "cpu_util": 0.13739069335463974,
+      "mem_util": 2182.359375,
+      "network_rx": 45.8452656563071,
+      "log_error_rate": 4.2,
+      "trace_latency_ms": 1.1840644329896908,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-13T06:33:53.084048Z",
+      "cpu_util": 0.1523005105360999,
+      "mem_util": 2272.984375,
+      "network_rx": 42.69076685427573,
+      "log_error_rate": 4.723076923076923,
+      "trace_latency_ms": 1.3444451827242525,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

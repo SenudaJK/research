@@ -1,0 +1,74 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-02-memory-leak.yaml",
+  "condition": "B",
+  "t0": "2026-09-13T07:09:11Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-13T07:09:22.995126Z",
+  "td_signal": "anomaly_score=0.7068>tau=0.5170",
+  "td_censored": false,
+  "tr": "2026-09-13T07:13:22.974059Z",
+  "tr_censored": false,
+  "mttd_seconds": 11.995126,
+  "mttr_seconds": 251.974059,
+  "availability": 0.7838235294117647,
+  "jaeger_restarts_before": "19",
+  "jaeger_restarts_after": "19",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-13T07:09:22.976275Z",
+      "cpu_util": 0.17517605000112602,
+      "mem_util": 1977.5390625,
+      "network_rx": 50.3858940196711,
+      "log_error_rate": 4.769230769230769,
+      "trace_latency_ms": 1.902987654320988,
+      "trace_error_pct": 0.37037037037037035,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.7068494367048078
+    },
+    {
+      "timestamp": "2026-09-13T07:10:22.940787Z",
+      "cpu_util": 0.17858379458349036,
+      "mem_util": 2212.62890625,
+      "network_rx": 19.713500388833765,
+      "log_error_rate": 4.630769230769231,
+      "trace_latency_ms": 14.785766355140185,
+      "trace_error_pct": 0.08411214953271028,
+      "frontend_success_rate": 0.1587301587301586,
+      "anomaly_score": 0.7633146776206787
+    },
+    {
+      "timestamp": "2026-09-13T07:11:22.985548Z",
+      "cpu_util": 0.20535019295908136,
+      "mem_util": 2277.0625,
+      "network_rx": 47.92048045561741,
+      "log_error_rate": 4.6,
+      "trace_latency_ms": 1.5400840579710147,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 0.9375,
+      "anomaly_score": 0.5522366551168116
+    },
+    {
+      "timestamp": "2026-09-13T07:12:22.949157Z",
+      "cpu_util": 0.2112164791502726,
+      "mem_util": 2280.01171875,
+      "network_rx": 47.08650016638869,
+      "log_error_rate": 5.153846153846154,
+      "trace_latency_ms": 1.4682716763005779,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5610914025311033
+    },
+    {
+      "timestamp": "2026-09-13T07:13:22.962036Z",
+      "cpu_util": 0.16951607111604308,
+      "mem_util": 2283.21484375,
+      "network_rx": 48.778523498819396,
+      "log_error_rate": 4.984615384615385,
+      "trace_latency_ms": 1.5687814569536425,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5098961638152216
+    }
+  ]
+}

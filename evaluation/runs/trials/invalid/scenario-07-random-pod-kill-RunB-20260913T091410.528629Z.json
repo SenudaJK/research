@@ -1,0 +1,30 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-07-random-pod-kill.yaml",
+  "condition": "B",
+  "t0": "2026-09-13T08:57:59Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-13T08:58:11.509100Z",
+  "td_signal": "anomaly_score=0.5376>tau=0.5170",
+  "td_censored": false,
+  "tr": null,
+  "tr_censored": true,
+  "mttd_seconds": 12.5091,
+  "mttr_seconds": 600.0,
+  "availability": 1.0,
+  "jaeger_restarts_before": "20",
+  "jaeger_restarts_after": "20",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-13T08:58:11.491786Z",
+      "cpu_util": 0.13949111633968794,
+      "mem_util": 2275.78515625,
+      "network_rx": 47.91121076372727,
+      "log_error_rate": 3.876923076923077,
+      "trace_latency_ms": 2.9891761194029853,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5375969274950547
+    }
+  ]
+}
