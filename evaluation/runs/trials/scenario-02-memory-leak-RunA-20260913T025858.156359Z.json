@@ -1,0 +1,119 @@
+{
+  "scenario_file": "evaluation/scenarios/scenario-02-memory-leak.yaml",
+  "condition": "A",
+  "t0": "2026-09-13T02:49:46Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-13T02:49:57.968566Z",
+  "td_signal": "pod-not-ready",
+  "td_censored": false,
+  "tr": "2026-09-13T02:58:57.884073Z",
+  "tr_censored": false,
+  "mttd_seconds": 11.968566,
+  "mttr_seconds": 551.884073,
+  "availability": 0.3426573426573426,
+  "jaeger_restarts_before": "15",
+  "jaeger_restarts_after": "15",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-13T02:49:57.866685Z",
+      "cpu_util": 0.14764294956571875,
+      "mem_util": 2074.01171875,
+      "network_rx": 47.751237852594485,
+      "log_error_rate": 4.369230769230769,
+      "trace_latency_ms": 1.287324200913242,
+      "trace_error_pct": 0.1004566210045662,
+      "frontend_success_rate": 0.9921259842519685
+    },
+    {
+      "timestamp": "2026-09-13T02:50:57.837228Z",
+      "cpu_util": 0.09094576195475232,
+      "mem_util": 2070.6796875,
+      "network_rx": 14.668378910654608,
+      "log_error_rate": 4.2,
+      "trace_latency_ms": 1.6294361702127658,
+      "trace_error_pct": 0.3404255319148936,
+      "frontend_success_rate": 0.1693548387096775
+    },
+    {
+      "timestamp": "2026-09-13T02:51:57.881313Z",
+      "cpu_util": 0.08458210003424536,
+      "mem_util": 2069.28515625,
+      "network_rx": 20.484873830863545,
+      "log_error_rate": 4.338461538461538,
+      "trace_latency_ms": 1.4060107526881722,
+      "trace_error_pct": 0.3870967741935484,
+      "frontend_success_rate": 0.16417910447761208
+    },
+    {
+      "timestamp": "2026-09-13T02:52:57.868235Z",
+      "cpu_util": 0.0899873993864605,
+      "mem_util": 2061.50390625,
+      "network_rx": 21.00700909191409,
+      "log_error_rate": 4.446153846153846,
+      "trace_latency_ms": 2.200221052631579,
+      "trace_error_pct": 0.35789473684210527,
+      "frontend_success_rate": 0.14516129032258074
+    },
+    {
+      "timestamp": "2026-09-13T02:53:57.898151Z",
+      "cpu_util": 0.08806528345345876,
+      "mem_util": 2061.6171875,
+      "network_rx": 14.953585815147134,
+      "log_error_rate": 4.7384615384615385,
+      "trace_latency_ms": 1.2414874999999999,
+      "trace_error_pct": 0.475,
+      "frontend_success_rate": 0.12149532710280375
+    },
+    {
+      "timestamp": "2026-09-13T02:54:57.871733Z",
+      "cpu_util": 0.08940272172641801,
+      "mem_util": 2064.875,
+      "network_rx": 18.012206398674447,
+      "log_error_rate": 5.046153846153846,
+      "trace_latency_ms": 1.1750240963855423,
+      "trace_error_pct": 0.3373493975903614,
+      "frontend_success_rate": 0.1415929203539822
+    },
+    {
+      "timestamp": "2026-09-13T02:55:57.869982Z",
+      "cpu_util": 0.1395246836460615,
+      "mem_util": 2150.65625,
+      "network_rx": 16.061366705219758,
+      "log_error_rate": 5.492307692307692,
+      "trace_latency_ms": 1.18351,
+      "trace_error_pct": 0.38,
+      "frontend_success_rate": 0.1610169491525425
+    },
+    {
+      "timestamp": "2026-09-13T02:56:57.860076Z",
+      "cpu_util": 0.09798203191530476,
+      "mem_util": 2163.828125,
+      "network_rx": 19.94211917481035,
+      "log_error_rate": 5.1692307692307695,
+      "trace_latency_ms": 2.539270758122744,
+      "trace_error_pct": 0.04332129963898917,
+      "frontend_success_rate": 0.13445378151260512
+    },
+    {
+      "timestamp": "2026-09-13T02:57:57.906035Z",
+      "cpu_util": 0.17012951495853723,
+      "mem_util": 2243.9921875,
+      "network_rx": 45.349105665340524,
+      "log_error_rate": 5.030769230769231,
+      "trace_latency_ms": 1.5010377358490565,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-13T02:58:57.884003Z",
+      "cpu_util": 0.16965413211643268,
+      "mem_util": 2257.6953125,
+      "network_rx": 57.04321304068198,
+      "log_error_rate": 5.015384615384615,
+      "trace_latency_ms": 1.378063063063063,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

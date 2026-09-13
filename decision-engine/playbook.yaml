@@ -47,3 +47,82 @@ rules:
     explanation_template: >
       Restarting {name}: log_error_rate z-score {zscore:.1f} vs baseline
       (anomaly score {score:.3f} > tau {tau:.3f}), matched rule {rule_id}.
+
+  - rule_id: R3-memory-leak-restart
+    description: >
+      Memory exhaustion on cartservice (scenario-02) detected via elevated
+      mem_util relative to baseline -> roll the Deployment to recreate the
+      leaking pod before it OOMKills on its own. Matches Table I's S2
+      recovery: "Trigger graceful container restart; adjust memory limits."
+    trigger_feature: mem_util
+    target:
+      kind: Deployment
+      name: cartservice
+      namespace: boutique
+    action: restart
+    explanation_template: >
+      Restarting {name}: mem_util z-score {zscore:.1f} vs baseline
+      (anomaly score {score:.3f} > tau {tau:.3f}), matched rule {rule_id}.
+
+  - rule_id: R4-network-latency-scale
+    description: >
+      200ms network delay injected on recommendationservice (scenario-04)
+      detected via elevated trace_latency_ms relative to baseline -> scale
+      up replicas so more instances share the delayed-RPC load. Matches
+      Table I's S4 recovery intent ("reroute traffic; adjust Istio sidecar
+      retry/timeout configurations"), substituted because this cluster has
+      no service mesh installed (verified: no pods in istio-system) — see
+      evaluation/scenarios/scenario-04-network-latency.yaml's own note.
+    trigger_feature: trace_latency_ms
+    target:
+      kind: Deployment
+      name: recommendationservice
+      namespace: boutique
+    action: scale
+    scale_replicas: 3
+    explanation_template: >
+      Scaling {name} to {replicas} replicas: trace_latency_ms z-score
+      {zscore:.1f} vs baseline (anomaly score {score:.3f} > tau {tau:.3f}),
+      matched rule {rule_id}.
+
+  - rule_id: R5-volume-detachment-restart
+    description: >
+      Simulated volume detachment on redis-cart (scenario-09, injected as
+      IOChaos I/O errors) detected via elevated trace_error_pct relative to
+      baseline -> roll the Deployment to restart the container. Matches
+      Table I's S9 recovery intent ("trigger volume remount API command;
+      restart database container"); only the restart half is implemented
+      because redis-cart uses an emptyDir (no PVC, no remount API exists)
+      — see evaluation/scenarios/scenario-09-volume-detachment.yaml's own
+      note.
+    trigger_feature: trace_error_pct
+    target:
+      kind: Deployment
+      name: redis-cart
+      namespace: boutique
+    action: restart
+    explanation_template: >
+      Restarting {name}: trace_error_pct z-score {zscore:.1f} vs baseline
+      (anomaly score {score:.3f} > tau {tau:.3f}), matched rule {rule_id}.
+
+  - rule_id: R6-db-pool-exhaustion-scale
+    description: >
+      Simulated DB connection pool exhaustion on productcatalogservice
+      (scenario-11, injected as a network bandwidth throttle) detected via
+      elevated network_rx relative to baseline -> scale up replicas to
+      spread the throttled load. Matches Table I's S11 recovery intent
+      ("dynamically upscale database pool limit via ConfigMap reload");
+      substituted because productcatalogservice has no backing database or
+      pool ConfigMap (serves products.json in-memory) — see
+      evaluation/scenarios/scenario-11-db-pool-exhaustion.yaml's own note.
+    trigger_feature: network_rx
+    target:
+      kind: Deployment
+      name: productcatalogservice
+      namespace: boutique
+    action: scale
+    scale_replicas: 3
+    explanation_template: >
+      Scaling {name} to {replicas} replicas: network_rx z-score
+      {zscore:.1f} vs baseline (anomaly score {score:.3f} > tau {tau:.3f}),
+      matched rule {rule_id}.
