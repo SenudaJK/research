@@ -71,6 +71,13 @@ def log_error_rate(logs_path):
     return error_lines / LOG_WINDOW_SECONDS, True
 
 
+def trace_features_for(traces_dir, sample_n, service):
+    """Same as trace_features() but for a per-service trace file, e.g.
+    traces/sample_<n>_cartservice.json (v2 model only — see
+    infra/scripts/collect-baseline.sh's PER_SERVICE_TRACE_SERVICES)."""
+    return trace_features(traces_dir / f"sample_{sample_n}_{service}.json")
+
+
 def trace_features(traces_path):
     """(avg_latency_ms, error_pct, ok). ok=False if the query itself failed."""
     if not traces_path.exists():
@@ -130,6 +137,24 @@ def build(run_dir):
             ] if not ok
         ]
 
+        # v2-only per-service features (decision-engine/model-config-v2.yaml).
+        # Kept out of `missing`/--max-missing-fraction: a run collected before
+        # infra/scripts/collect-baseline.sh grew these keys would otherwise
+        # have them "missing" on every row and fail the v1 gate below, even
+        # though v1 never reads them. See docs/experiment-log.md's "v2 model"
+        # entry.
+        mem_cart_bytes, mem_cart_ok = prom_scalar(metrics_json, "memory_working_set_cartservice")
+        net_pcs_bytes_per_sec, net_pcs_ok = prom_scalar(metrics_json, "network_receive_bytes_productcatalogservice")
+        _, cart_error_pct, cart_trace_ok = trace_features_for(traces_dir, n, "cartservice")
+
+        missing_v2 = [
+            name for name, ok in [
+                ("mem_util_cartservice", mem_cart_ok),
+                ("network_rx_productcatalogservice", net_pcs_ok),
+                ("trace_error_pct_cartservice", cart_trace_ok),
+            ] if not ok
+        ]
+
         rows.append({
             "sample": n,
             "timestamp": metrics_json.get("timestamp"),
@@ -139,7 +164,11 @@ def build(run_dir):
             "log_error_rate": logs_rate,
             "trace_latency_ms": latency_ms,
             "trace_error_pct": error_pct,
+            "mem_util_cartservice": mem_cart_bytes / (1024 * 1024) if mem_cart_ok else np.nan,
+            "network_rx_productcatalogservice": net_pcs_bytes_per_sec / 1024 if net_pcs_ok else np.nan,
+            "trace_error_pct_cartservice": cart_error_pct,
             "missing_features": ",".join(missing),
+            "missing_v2_features": ",".join(missing_v2),
         })
 
     return pd.DataFrame(rows).sort_values("sample")

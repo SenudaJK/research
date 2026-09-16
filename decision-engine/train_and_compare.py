@@ -136,6 +136,35 @@ class ModelTrainerAndComparer:
         tau = float(np.percentile(anomaly_scores, percentile))
         return tau, percentile
 
+    @staticmethod
+    def _anomaly_scores(model, X):
+        """Higher = more anomalous, via decision_function (all three model
+        types support it) rather than each model's own .predict(), whose
+        default cutoff is derived from its own contamination/nu hyperparameter
+        and is NOT comparable across algorithms (Isolation Forest predicts
+        with an internal contamination-derived offset while the deployed
+        system actually thresholds at tau = the threshold_percentile of
+        training scores — see compute_isolation_forest_threshold). Using a
+        shared training-score percentile for every model instead puts all
+        three on the same operating-point basis (same false-positive budget
+        on training data), which is what production Isolation Forest already
+        does and what a fair comparison table requires."""
+        return -model.decision_function(X)
+
+    def compute_thresholds(self, results):
+        """tau per model = Nth percentile (config threshold_percentile) of
+        that model's own anomaly scores on the TRAINING data — same
+        methodology as compute_isolation_forest_threshold, applied uniformly
+        so the comparison table isn't Isolation Forest-at-p95 vs SVM/LOF at
+        their own internal contamination/nu cutoff (an apples-to-oranges
+        mismatch found when this table was first run against real data)."""
+        percentile = self.config["threshold_percentile"]
+        thresholds = {}
+        for name, data in results.items():
+            train_scores = self._anomaly_scores(data["model"], self.X_scaled)
+            thresholds[name] = float(np.percentile(train_scores, percentile))
+        return thresholds
+
     def compare_on_labeled_validation(self, results, validation_csv):
         """Evaluates models against REAL labeled validation data.
 
@@ -152,7 +181,8 @@ class ModelTrainerAndComparer:
 
         y_true = df["label"].tolist()
         X_val_scaled = self.scaler.transform(df[self.features])
-        return self._score_models(results, X_val_scaled, y_true)
+        thresholds = self.compute_thresholds(results)
+        return self._score_models(results, X_val_scaled, y_true, thresholds)
 
     def compare_on_synthetic_smoke_test(self, results):
         """Pipeline smoke test ONLY — not research evidence. Synthesized
@@ -177,15 +207,17 @@ class ModelTrainerAndComparer:
         y_true = [0] * 200 + [1] * 50
         X_val_raw = pd.concat([normal_val, chaos_val])
         X_val_scaled = self.scaler.transform(X_val_raw[self.features])
-        return self._score_models(results, X_val_scaled, y_true)
+        thresholds = self.compute_thresholds(results)
+        return self._score_models(results, X_val_scaled, y_true, thresholds)
 
-    def _score_models(self, results, X_val_scaled, y_true):
+    def _score_models(self, results, X_val_scaled, y_true, thresholds):
         comparison_table = []
         for name, data in results.items():
             model = data["model"]
+            tau = thresholds[name]
             start_infer = time.time()
-            raw_pred = model.predict(X_val_scaled)
-            y_pred = [1 if val == -1 else 0 for val in raw_pred]
+            anomaly_scores = self._anomaly_scores(model, X_val_scaled)
+            y_pred = [1 if score > tau else 0 for score in anomaly_scores]
             infer_time_us = (time.time() - start_infer) / len(X_val_scaled) * 1e6
 
             comparison_table.append({
@@ -193,6 +225,7 @@ class ModelTrainerAndComparer:
                 "Precision": precision_score(y_true, y_pred, zero_division=0),
                 "Recall": recall_score(y_true, y_pred, zero_division=0),
                 "F1-Score": f1_score(y_true, y_pred, zero_division=0),
+                "Tau (train p{})".format(self.config["threshold_percentile"]): tau,
                 "Train Time (s)": data["train_time"],
                 "Inference Latency (us)": infer_time_us,
             })

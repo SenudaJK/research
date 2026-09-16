@@ -64,6 +64,10 @@ METRIC_QUERIES = {
         'or vector(0)) / clamp_min(sum(rate(boutique_traces_span_metrics_calls_total{'
         'service_name="frontend",span_kind="SPAN_KIND_SERVER"}[1m])), 1e-9))'
     ),
+    # v2 per-service metrics (decision-engine/model-config-v2.yaml only) —
+    # mirrors the same keys added to infra/scripts/collect-baseline.sh.
+    "memory_working_set_cartservice": 'sum(container_memory_working_set_bytes{namespace="boutique",container="cartservice"})',
+    "network_receive_bytes_productcatalogservice": 'sum(rate(container_network_receive_bytes_total{namespace="boutique",container="productcatalogservice"}[1m]))',
 }
 FEATURES = ["cpu_util", "mem_util", "network_rx", "log_error_rate", "trace_latency_ms", "trace_error_pct"]
 
@@ -94,6 +98,40 @@ def jaeger_restart_count():
         check=False,
     )
     return out or "?"
+
+
+# scenario-12 has no Chaos Mesh CRD — see scenario-12-config-drift.yaml's own
+# header comment for why (config drift is injected via a direct kubectl
+# patch, not a chaos-mesh.org resource) and for the exact commands below.
+MANUAL_SCENARIOS = {
+    "scenario-12-config-drift": {
+        "patch_cmd": (
+            "kubectl patch deployment checkoutservice -n boutique --type=json "
+            "-p='[{\"op\":\"replace\",\"path\":\"/spec/template/spec/containers/0/env/0/value\","
+            "\"value\":\"paymentservice.boutique.svc.cluster.local:9\"}]'"
+        ),
+        "revert_cmd": "kubectl apply -k infra/boutique/",
+    },
+}
+
+
+def is_manual_scenario(scenario_file):
+    return Path(scenario_file).stem in MANUAL_SCENARIOS
+
+
+def apply_manual_scenario(scenario_file):
+    """Returns (t0_str, t0_source) — there is no Chaos Mesh status field to
+    read, so T0 is the patch command's own timestamp (see
+    docs/measurement-protocol.md's apply_timestamp_fallback precedent)."""
+    stem = Path(scenario_file).stem
+    t0_str = now_iso()
+    sh(MANUAL_SCENARIOS[stem]["patch_cmd"])
+    return t0_str, "kubectl_patch_timestamp"
+
+
+def revert_manual_scenario(scenario_file):
+    stem = Path(scenario_file).stem
+    sh(MANUAL_SCENARIOS[stem]["revert_cmd"], check=False)
 
 
 def clear_and_apply(scenario_file):
@@ -268,10 +306,10 @@ def log_error_rate():
         return None
 
 
-def trace_features():
+def trace_features(service="frontend"):
     try:
         r = requests.get(
-            "http://127.0.0.1:16686/api/traces", params={"service": "frontend", "limit": 20}, timeout=5
+            "http://127.0.0.1:16686/api/traces", params={"service": service, "limit": 20}, timeout=5
         )
         traces = r.json().get("data")
         if not traces:
@@ -291,14 +329,14 @@ def trace_features():
         return None, None
 
 
-def take_sample():
+def take_sample(v2=False):
     cpu = prom_query(METRIC_QUERIES["cpu_usage"])
     mem = prom_query(METRIC_QUERIES["memory_working_set"])
     net = prom_query(METRIC_QUERIES["network_receive_bytes"])
     slo = prom_query(METRIC_QUERIES["frontend_success_rate"])
     logs = log_error_rate()
     latency, err_pct = trace_features()
-    return {
+    sample = {
         "timestamp": now_iso(),
         "cpu_util": cpu,
         "mem_util": mem / (1024 * 1024) if mem is not None else None,
@@ -308,6 +346,16 @@ def take_sample():
         "trace_error_pct": err_pct,
         "frontend_success_rate": slo,
     }
+    if v2:
+        # decision-engine/model-config-v2.yaml features only — see
+        # docs/experiment-log.md's "v2 model" entry.
+        mem_cart = prom_query(METRIC_QUERIES["memory_working_set_cartservice"])
+        net_pcs = prom_query(METRIC_QUERIES["network_receive_bytes_productcatalogservice"])
+        _, cart_err_pct = trace_features(service="cartservice")
+        sample["mem_util_cartservice"] = mem_cart / (1024 * 1024) if mem_cart is not None else None
+        sample["network_rx_productcatalogservice"] = net_pcs / 1024 if net_pcs is not None else None
+        sample["trace_error_pct_cartservice"] = cart_err_pct
+    return sample
 
 
 # --- Run A native detection ---
@@ -349,18 +397,19 @@ def load_model(model_dir):
     return scaler, iforest, threshold
 
 
-def load_playbook():
-    return yaml.safe_load((ROOT_DIR / "decision-engine" / "playbook.yaml").read_text())["rules"]
+def load_playbook(playbook_path=None):
+    playbook_path = playbook_path or (ROOT_DIR / "decision-engine" / "playbook.yaml")
+    return yaml.safe_load(Path(playbook_path).read_text())["rules"]
 
 
-def score_sample(sample, scaler, iforest):
-    if any(sample[f] is None for f in FEATURES):
+def score_sample(sample, scaler, iforest, features):
+    if any(sample.get(f) is None for f in features):
         return None
-    X = scaler.transform([[sample[f] for f in FEATURES]])
+    X = scaler.transform([[sample[f] for f in features]])
     return float(-iforest.score_samples(X)[0])
 
 
-def match_rule(sample, scaler, rules, z_threshold):
+def match_rule(sample, scaler, rules, z_threshold, features):
     """Mirrors decision-engine/orchestrator.py's match_rule — keep in sync.
 
     A rule matches if ITS OWN trigger_feature's |z-score| exceeds
@@ -368,17 +417,22 @@ def match_rule(sample, scaler, rules, z_threshold):
     overall. Fixed 2026-09-07: the old "top feature only" version missed a
     real CPU fault because log_error_rate briefly out-ranked cpu_util
     before the CPU stress had fully ramped up.
+
+    `features` is the model's own feature list (threshold["features"]), not
+    a hardcoded constant — this is what lets the same function serve both
+    the v1 6-feature model and decision-engine/model-config-v2.yaml's
+    9-feature model.
     """
-    z_scores = (np.array([sample[f] for f in FEATURES]) - scaler.mean_) / scaler.scale_
+    z_scores = (np.array([sample[f] for f in features]) - scaler.mean_) / scaler.scale_
     candidates = []
     for rule in rules:
-        idx = FEATURES.index(rule["trigger_feature"])
+        idx = features.index(rule["trigger_feature"])
         z = float(z_scores[idx])
         if abs(z) > z_threshold:
             candidates.append((abs(z), rule, rule["trigger_feature"], z))
 
     top_idx = int(np.argmax(np.abs(z_scores)))
-    top_feature, top_z = FEATURES[top_idx], float(z_scores[top_idx])
+    top_feature, top_z = features[top_idx], float(z_scores[top_idx])
 
     if not candidates:
         return None, top_feature, top_z
@@ -387,16 +441,43 @@ def match_rule(sample, scaler, rules, z_threshold):
     return rule, matched_feature, matched_z
 
 
-def match_and_emit(sample, scaler, rules, score, tau, z_threshold):
+def resolve_dynamic_target(target):
+    """Rules whose target is chosen at trial time rather than fixed in
+    decision-engine/playbook.yaml (target.kind == "Node", target.name ==
+    "AUTO" — e.g. R10-node-starvation-evict, scenario-08) get resolved here:
+    the node currently hosting a not-Running/not-Ready boutique pod is
+    treated as the affected node. Returns the resolved target dict, or None
+    if no unhealthy pod can be found yet (caller should retry on a later
+    sample rather than act on a guess)."""
+    if target.get("kind") != "Node" or target.get("name") != "AUTO":
+        return target
+    out = sh("kubectl get pods -n boutique -o json", check=False)
+    if not out:
+        return None
+    for pod in json.loads(out).get("items", []):
+        phase = pod["status"].get("phase")
+        ready = all(c.get("ready") for c in pod["status"].get("containerStatuses", [])) if pod["status"].get("containerStatuses") else False
+        if phase != "Running" or not ready:
+            node_name = pod["spec"].get("nodeName")
+            if node_name:
+                return {**target, "name": node_name}
+    return None
+
+
+def match_and_emit(sample, scaler, rules, score, tau, z_threshold, features):
     """Returns True if a RemediationAction was actually created, False if no
     rule matched yet (caller should keep retrying on later samples)."""
     import kubernetes
-    rule, matched_feature, matched_z = match_rule(sample, scaler, rules, z_threshold)
+    rule, matched_feature, matched_z = match_rule(sample, scaler, rules, z_threshold, features)
     if rule is None:
         log(f"anomaly_score={score:.4f} > tau={tau:.4f}, top feature={matched_feature} "
             f"(z={matched_z:.2f}) — NO MATCHING RULE")
         return False
-    target = rule["target"]
+    target = resolve_dynamic_target(rule["target"])
+    if target is None:
+        log(f"rule {rule['rule_id']} matched but its dynamic target (Node/AUTO) "
+            "could not be resolved yet — no unhealthy pod found, will retry on next sample")
+        return False
     name = f"{rule['rule_id'].lower()}-{int(time.time())}"
     explanation = rule["explanation_template"].format(
         name=target["name"], replicas=rule.get("scale_replicas"),
@@ -449,6 +530,18 @@ def main():
     parser.add_argument("--scenario", required=True)
     parser.add_argument("--condition", required=True, choices=["A", "B"])
     parser.add_argument("--model-dir", default=None, help="Required for --condition B")
+    parser.add_argument(
+        "--playbook", default=None,
+        help="Defaults to decision-engine/playbook.yaml. Pass "
+             "decision-engine/playbook-v2.yaml when --model-dir points at a "
+             "v2 (per-service-feature) model — see docs/experiment-log.md.",
+    )
+    parser.add_argument(
+        "--config", default=None,
+        help="Model config to read rule_match_z_threshold from. Defaults to "
+             "decision-engine/model-config.yaml; pass model-config-v2.yaml "
+             "to match a v2 --model-dir/--playbook.",
+    )
     parser.add_argument("--timeout-seconds", type=int, default=TRIAL_TIMEOUT_SECONDS)
     args = parser.parse_args()
 
@@ -456,11 +549,15 @@ def main():
         die("--model-dir is required for --condition B")
 
     scaler = iforest = threshold = rules = None
+    features = FEATURES
+    is_v2 = False
     z_threshold = 3.0
     if args.condition == "B":
         scaler, iforest, threshold = load_model(args.model_dir)
-        rules = load_playbook()
-        config_path = ROOT_DIR / "decision-engine" / "model-config.yaml"
+        rules = load_playbook(args.playbook)
+        features = threshold.get("features", FEATURES)
+        is_v2 = any(f not in FEATURES for f in features)
+        config_path = Path(args.config) if args.config else (ROOT_DIR / "decision-engine" / "model-config.yaml")
         z_threshold = yaml.safe_load(config_path.read_text()).get("rule_match_z_threshold", 3.0)
 
     restarts_before = jaeger_restart_count()
@@ -469,15 +566,22 @@ def main():
     pre_fault_snapshot = boutique_pod_snapshot()
     pre_fault_replicas = deployment_replica_snapshot("boutique")
 
-    log("Clearing stale experiment and applying fresh...")
-    apply_ts = now_iso()
-    ref, resource_type, resource_name, namespace = clear_and_apply(args.scenario)
-    log(f"Created {ref} at {apply_ts}")
+    manual = is_manual_scenario(args.scenario)
+    resource_type = resource_name = namespace = None
+    if manual:
+        log("Manual scenario (no Chaos Mesh CRD) — applying kubectl patch directly...")
+        t0_str, t0_source = apply_manual_scenario(args.scenario)
+        log(f"Patched at {t0_str}")
+    else:
+        log("Clearing stale experiment and applying fresh...")
+        apply_ts = now_iso()
+        ref, resource_type, resource_name, namespace = clear_and_apply(args.scenario)
+        log(f"Created {ref} at {apply_ts}")
 
-    active = wait_for_active(resource_type, resource_name, namespace)
-    log(f"Experiment active: {active}")
+        active = wait_for_active(resource_type, resource_name, namespace)
+        log(f"Experiment active: {active}")
 
-    t0_str, t0_source = capture_t0(resource_type, resource_name, namespace, apply_ts)
+        t0_str, t0_source = capture_t0(resource_type, resource_name, namespace, apply_ts)
     t0 = datetime.fromisoformat(t0_str.replace("Z", "+00:00"))
     log(f"T0 = {t0_str} (source: {t0_source})")
 
@@ -493,7 +597,7 @@ def main():
         start = time.time()
         while time.time() - start < args.timeout_seconds:
             iter_start = time.time()
-            sample = take_sample()
+            sample = take_sample(v2=is_v2)
             samples.append(sample)
             elapsed = (datetime.now(timezone.utc) - t0).total_seconds()
             log(f"t+{elapsed:.0f}s: success_rate={sample['frontend_success_rate']}, "
@@ -507,7 +611,7 @@ def main():
                         td_signal = signal
                         log(f"Td reached (Run A signal: {signal})")
             else:
-                score = score_sample(sample, scaler, iforest)
+                score = score_sample(sample, scaler, iforest, features)
                 sample["anomaly_score"] = score
                 if score is not None and score > threshold["tau"]:
                     if td is None:
@@ -520,7 +624,7 @@ def main():
                     # up while log_error_rate had, on 2026-09-07's first attempt
                     # at this fix). Td itself must not move once set.
                     if not acted:
-                        acted = match_and_emit(sample, scaler, rules, score, threshold["tau"], z_threshold)
+                        acted = match_and_emit(sample, scaler, rules, score, threshold["tau"], z_threshold, features)
 
             if recovery_check(samples):
                 tr = datetime.now(timezone.utc)
@@ -535,7 +639,10 @@ def main():
         availability = compute_availability(t0, availability_end)
     finally:
         teardown_port_forwards(port_forwards)
-        cleanup_scenario(args.scenario)
+        if manual:
+            revert_manual_scenario(args.scenario)
+        else:
+            cleanup_scenario(args.scenario)
         restore_replicas("boutique", pre_fault_replicas)
 
     te = t0.timestamp() + args.timeout_seconds

@@ -5,11 +5,11 @@
 # status so `kubectl get remediationaction -o yaml` is a complete audit
 # record on its own.
 #
-# Vertical slice scope: action enum has "scale" (scenario-01) and "restart"
-# (scenario-07) implemented in operator/handlers.py. "evict" is still
-# unimplemented. Extend both this schema and the operator together as more
-# of the 12 scenarios' recovery actions are added — see docs/architecture.md
-# Phase 3.
+# Vertical slice scope: "scale" (scenario-01), "restart" (scenario-07),
+# "evict" (scenario-03 Deployment-scoped, scenario-08 Node-scoped), and
+# "reconcile" (scenario-12) are all implemented in operator/handlers.py.
+# Extend both this schema and the operator together as more of the 12
+# scenarios' recovery actions are added — see docs/architecture.md Phase 3.
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -57,7 +57,16 @@ spec:
                   properties:
                     kind:
                       type: string
-                      enum: ["Deployment"]
+                      description: >
+                        "Node" targets (R10-node-starvation-evict,
+                        scenario-08) are resolved dynamically at match time
+                        (decision-engine/orchestrator.py /
+                        evaluation/analysis/run_trial.py's
+                        resolve_dynamic_target()) since the affected node
+                        isn't known until the trial picks one — targetRef.name
+                        is still always a concrete node name by the time this
+                        CR is created, never a placeholder.
+                      enum: ["Deployment", "Node"]
                     name:
                       type: string
                     namespace:
@@ -65,11 +74,9 @@ spec:
                 action:
                   type: string
                   description: >
-                    "scale" and "restart" are implemented by
-                    operator/handlers.py. "evict" is accepted by the schema
-                    (for forward compatibility with later scenarios) but
-                    rejected at runtime as "unsupported_action".
-                  enum: ["scale", "restart", "evict"]
+                    "scale", "restart", "evict", and "reconcile" are all
+                    implemented by operator/handlers.py.
+                  enum: ["scale", "restart", "evict", "reconcile"]
                 scaleReplicas:
                   type: integer
                   minimum: 1

@@ -46,6 +46,27 @@ METRIC_QUERY_memory_working_set='sum(container_memory_working_set_bytes{namespac
 METRIC_QUERY_network_receive_bytes='sum(rate(container_network_receive_bytes_total{namespace="boutique"}[1m]))'
 METRIC_QUERY_pod_phase='kube_pod_status_phase{namespace="boutique"}'
 
+# --- v2 per-service features (decision-engine/model-config-v2.yaml only; the
+# frozen v1 model in decision-engine/model-config.yaml never reads these) ---
+# Added to disambiguate faults that the namespace-wide aggregates above
+# swamp or conflate — see docs/experiment-log.md's 2026-09-13 scenario-02
+# (mem_util) and scenario-04/9/11 (rule-collision) entries. Extend this list
+# with more "container=<service>" queries the same way if another scenario
+# turns out to need its own localized signal; no other script change needed.
+METRIC_KEYS+=(
+  memory_working_set_cartservice
+  network_receive_bytes_productcatalogservice
+)
+METRIC_QUERY_memory_working_set_cartservice='sum(container_memory_working_set_bytes{namespace="boutique",container="cartservice"})'
+METRIC_QUERY_network_receive_bytes_productcatalogservice='sum(rate(container_network_receive_bytes_total{namespace="boutique",container="productcatalogservice"}[1m]))'
+
+# Extra per-service Jaeger trace pulls (v2 only) — cartservice is the direct
+# caller of redis-cart, so its own trace error rate is a candidate localized
+# signal for scenario-09 (volume detachment) independent of scenario-11's
+# productcatalogservice bandwidth throttle, which the frontend-only trace
+# pull above cannot distinguish (both show up as frontend errors).
+PER_SERVICE_TRACE_SERVICES=(cartservice)
+
 query_for() {
   local key="$1"
   eval "printf '%s' \"\${METRIC_QUERY_${key}}\""
@@ -155,6 +176,15 @@ while [[ ${SAMPLE} -lt ${TARGET_SAMPLES} && ${SECONDS} -lt ${HARD_CAP_TIME} ]]; 
     --data-urlencode 'limit=20' \
     -o "${OUTPUT_DIR}/traces/sample_${SAMPLE}.json" 2>/dev/null || \
     echo '{"data":[],"total":0}' > "${OUTPUT_DIR}/traces/sample_${SAMPLE}.json"
+
+  # v2 per-service trace pulls — see PER_SERVICE_TRACE_SERVICES above.
+  for svc in "${PER_SERVICE_TRACE_SERVICES[@]}"; do
+    curl -sfG "http://127.0.0.1:16686/api/traces" \
+      --data-urlencode "service=${svc}" \
+      --data-urlencode 'limit=20' \
+      -o "${OUTPUT_DIR}/traces/sample_${SAMPLE}_${svc}.json" 2>/dev/null || \
+      echo '{"data":[],"total":0}' > "${OUTPUT_DIR}/traces/sample_${SAMPLE}_${svc}.json"
+  done
 
   if [[ ${SAMPLE} -ge ${TARGET_SAMPLES} ]]; then break; fi
   CAP_REMAINING=$(( HARD_CAP_TIME - SECONDS ))

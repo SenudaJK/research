@@ -42,6 +42,30 @@ def load_playbook(playbook_path):
     return yaml.safe_load(playbook_path.read_text())["rules"]
 
 
+def resolve_dynamic_target(target):
+    """Mirrors evaluation/analysis/run_trial.py's resolve_dynamic_target —
+    keep in sync. Rules whose target is chosen at trial time (target.kind ==
+    "Node", target.name == "AUTO" — e.g. R10-node-starvation-evict) get
+    resolved here to the node currently hosting a not-Running/not-Ready
+    boutique pod. Returns None if no unhealthy pod can be found yet."""
+    if target.get("kind") != "Node" or target.get("name") != "AUTO":
+        return target
+    import subprocess
+    out = subprocess.run(
+        "kubectl get pods -n boutique -o json", shell=True, capture_output=True, text=True,
+    ).stdout
+    if not out:
+        return None
+    for pod in json.loads(out).get("items", []):
+        phase = pod["status"].get("phase")
+        ready = all(c.get("ready") for c in pod["status"].get("containerStatuses", [])) if pod["status"].get("containerStatuses") else False
+        if phase != "Running" or not ready:
+            node_name = pod["spec"].get("nodeName")
+            if node_name:
+                return {**target, "name": node_name}
+    return None
+
+
 def match_rule(row, features, scaler, rules, z_threshold=3.0):
     """Returns (rule_or_None, matched_feature, matched_z).
 
@@ -72,7 +96,9 @@ def match_rule(row, features, scaler, rules, z_threshold=3.0):
 
 
 def build_remediation_action(rule, anomaly_score, tau, top_z, execute):
-    target = rule["target"]
+    target = resolve_dynamic_target(rule["target"])
+    if target is None:
+        return None
     name = f"{rule['rule_id'].lower()}-{int(datetime.now(timezone.utc).timestamp())}"
     explanation = rule["explanation_template"].format(
         name=target["name"], replicas=rule.get("scale_replicas"),
@@ -150,6 +176,10 @@ def main():
         print(f"Row {i}: anomaly_score={score:.4f} > tau={tau:.4f}, matched {rule['rule_id']} "
               f"(top feature={top_feature}, z={top_z:.2f})")
         body = build_remediation_action(rule, score, tau, top_z, args.execute)
+        if body is None:
+            print(f"  -> rule {rule['rule_id']}'s dynamic target (Node/AUTO) could not be "
+                  "resolved yet (no unhealthy pod found) — skipping this row.")
+            continue
         created = emit(body)
         any_emitted = True
         print(f"  -> Created RemediationAction/{created['metadata']['name']} "

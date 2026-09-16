@@ -1,0 +1,63 @@
+# v2 model config — adds per-service features alongside the original 6, to
+# fix the rule-collision limitation documented in docs/experiment-log.md
+# (2026-09-13 entries: R3/mem_util dead for scenario-02; R5-vs-R6 collision
+# for scenario-09/11). This is a DELIBERATELY SEPARATE model/condition from
+# decision-engine/model-config.yaml — see that file's own comment and
+# decision-engine/README.md: the v1 model and its frozen tau, trained on
+# evaluation/runs/baseline/20260906T023729Z, must never be retrained or
+# changed. All of S1/S4/S7's already-logged Run A/B trials were measured
+# against v1 and are only comparable to other v1 trials.
+#
+# Train this against a FRESH baseline collected with the (also-extended)
+# infra/scripts/collect-baseline.sh into its own evaluation/runs/baseline/
+# <run-id>/ directory, then use decision-engine/playbook-v2.yaml (not
+# playbook.yaml) with this model — see docs/experiment-log.md's "v2 model"
+# entry for the full rationale and usage.
+
+features:
+  - cpu_util
+  - mem_util
+  - network_rx
+  - log_error_rate
+  - trace_latency_ms
+  - trace_error_pct
+  # --- v2 additions: per-service, not namespace-wide aggregates ---
+  - mem_util_cartservice
+  - network_rx_productcatalogservice
+  - trace_error_pct_cartservice
+
+# Same hyperparameters as v1 (decision-engine/model-config.yaml) — this
+# config only changes the feature set, not the algorithm, so any detection
+# quality difference is attributable to the added features.
+isolation_forest:
+  n_estimators: 100
+  contamination: 0.01
+  random_state: 42
+
+one_class_svm:
+  nu: 0.01
+  kernel: rbf
+  gamma: scale
+
+local_outlier_factor:
+  n_neighbors: 20
+  contamination: 0.01
+  novelty: true
+
+# Frozen from the v2 TRAINING baseline only, same rule as v1 — see
+# decision-engine/model-config.yaml's own comment for why this must never be
+# tuned on chaos-run data. Start from the same value as v1 (95); revisit only
+# if the v2 training score distribution's own p95 fails a fresh, independent
+# fault trial the same way v1's original p99 did (docs/experiment-log.md,
+# 2026-09-07).
+threshold_percentile: 95
+
+# Mirrors decision-engine/model-config.yaml — a 9-feature model needs at
+# least as many samples as the 6-feature one to avoid the same
+# too-shallow-trees problem found at 30 samples (docs/measurement-protocol.md).
+min_training_samples: 200
+
+# Mirrors decision-engine/model-config.yaml. Rule matching for the v2
+# playbook uses the same "each rule's own trigger_feature must exceed this"
+# logic in decision-engine/orchestrator.py / evaluation/analysis/run_trial.py.
+rule_match_z_threshold: 3.0

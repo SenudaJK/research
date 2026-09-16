@@ -105,6 +105,162 @@ rules:
       Restarting {name}: trace_error_pct z-score {zscore:.1f} vs baseline
       (anomaly score {score:.3f} > tau {tau:.3f}), matched rule {rule_id}.
 
+  - rule_id: R7-disk-io-stress-evict
+    description: >
+      Disk I/O stress on paymentservice (scenario-03, injected via a
+      disguised cpu-stressor workaround — see
+      evaluation/scenarios/scenario-03-disk-io-stress.yaml's own notes on why
+      no real io stressor/PVC exists here) detected via elevated cpu_util ->
+      evict paymentservice's pods so the scheduler recreates them fresh.
+      Matches Table I's S3 recovery intent ("evict affected pods to
+      alternative nodes with low disk load"); a bare delete rather than a
+      node-aware eviction, since this vertical slice doesn't implement node
+      disk-load scoring.
+      UNVALIDATED against a real trial yet (added 2026-09-15, no scenario-03
+      trial has been run) — cpu_util is already R1-cpu-starvation-scale's
+      trigger_feature (checkoutservice), and R1 vs R7 has the same
+      structural collision risk documented for R5 vs R6 in
+      docs/experiment-log.md: whichever service's cpu_util contribution is
+      larger at match time wins, regardless of which one actually faulted.
+      Confirm trigger_feature/collision behavior against a real trial before
+      treating this as working; decision-engine/model-config-v2.yaml's
+      per-service features are the structural fix if it collides the same
+      way R3/R5/R6 did.
+    trigger_feature: cpu_util
+    target:
+      kind: Deployment
+      name: paymentservice
+      namespace: boutique
+    action: evict
+    explanation_template: >
+      Evicting {name}'s pods: cpu_util z-score {zscore:.1f} vs baseline
+      (anomaly score {score:.3f} > tau {tau:.3f}), matched rule {rule_id}.
+
+  - rule_id: R8-packet-loss-scale
+    description: >
+      10% packet loss on shippingservice (scenario-05) detected via elevated
+      trace_latency_ms -> scale up replicas to absorb the added latency.
+      Matches Table I's S5 recovery ("auto-scale replicas to absorb
+      latency; trigger path verification" — path verification is not
+      implemented in this vertical slice).
+      UNVALIDATED against a real trial yet (added 2026-09-15). Collision
+      risk: trace_latency_ms is already R4-network-latency-scale's trigger
+      (recommendationservice) — same structural risk as R7 above.
+    trigger_feature: trace_latency_ms
+    target:
+      kind: Deployment
+      name: shippingservice
+      namespace: boutique
+    action: scale
+    scale_replicas: 3
+    explanation_template: >
+      Scaling {name} to {replicas} replicas: trace_latency_ms z-score
+      {zscore:.1f} vs baseline (anomaly score {score:.3f} > tau {tau:.3f}),
+      matched rule {rule_id}.
+
+  - rule_id: R9-dns-failure-restart
+    description: >
+      DNS resolution failure on catalog lookups from frontend (scenario-06)
+      detected via elevated log_error_rate -> restart CoreDNS itself, not a
+      boutique service. Matches Table I's S6 recovery verbatim ("gracefully
+      restart CoreDNS pods; re-initialize resolver cache") — this is a real,
+      non-substituted recovery action, unlike most other rules here.
+      UNVALIDATED against a real trial yet (added 2026-09-15). Collision
+      risk: log_error_rate is already R2-pod-kill-restart's trigger
+      (frontend) — same structural risk as R7/R8 above, though the target
+      (kube-system/coredns) is distinct enough that acting on the wrong rule
+      here is less likely to be silently harmless than R7/R8's same-action
+      collisions.
+    trigger_feature: log_error_rate
+    target:
+      kind: Deployment
+      name: coredns
+      namespace: kube-system
+    action: restart
+    explanation_template: >
+      Restarting {name}: log_error_rate z-score {zscore:.1f} vs baseline
+      (anomaly score {score:.3f} > tau {tau:.3f}), matched rule {rule_id}.
+
+  - rule_id: R10-node-starvation-evict
+    description: >
+      Simulated node unresponsiveness (scenario-08, approximated via
+      pod-failure across every pod scheduled on one worker node — see
+      evaluation/scenarios/scenario-08-node-unresponsive.yaml's own note on
+      why Chaos Mesh community edition has no real NodeChaos CRD) detected
+      via a candidate trace_latency_ms/log_error_rate spike -> drain the
+      affected node. Matches Table I's S8 recovery ("drain affected node;
+      evict and reschedule workloads to healthy nodes").
+      target.name is "AUTO": unlike every other rule, the affected node
+      isn't known until the trial picks one, so
+      decision-engine/orchestrator.py / evaluation/analysis/run_trial.py's
+      resolve_dynamic_target() resolves it at match time to whichever node
+      is currently hosting a not-Running/not-Ready boutique pod.
+      UNVALIDATED against a real trial yet (added 2026-09-15) — both the
+      trigger_feature choice and the collision risk against R2/R4 need
+      confirming from real z-scores, same as every other rule here.
+    trigger_feature: trace_latency_ms
+    target:
+      kind: Node
+      name: AUTO
+      namespace: boutique
+    action: evict
+    explanation_template: >
+      Draining node {name}: trace_latency_ms z-score {zscore:.1f} vs
+      baseline (anomaly score {score:.3f} > tau {tau:.3f}), matched rule
+      {rule_id}.
+
+  - rule_id: R11-http-5xx-restart
+    description: >
+      Frontend HTTP requests aborted with a 500 (scenario-10, injected via
+      HTTPChaos — a simpler substitute for the paper's original "deployment
+      config drift yielding 500s", which this project implements literally
+      as scenario-12 instead; see
+      evaluation/scenarios/scenario-10-http-5xx.yaml) detected via elevated
+      trace_error_pct -> restart frontend. The fault is transient (Chaos
+      Mesh's own cleanup fully reverses it, no persistent drift to roll
+      back), so a plain restart substitutes for Table I's literal "automated
+      rollback of deployment manifest to GitOps source-of-truth".
+      UNVALIDATED against a real trial yet (added 2026-09-15). Collision
+      risk: trace_error_pct is already R5-volume-detachment-restart's
+      trigger (redis-cart) and log_error_rate (also likely to spike here) is
+      R2's — this rule is a strong candidate to need
+      decision-engine/model-config-v2.yaml's per-service features if it
+      collides the way R5/R6 did for scenario-09/11.
+    trigger_feature: trace_error_pct
+    target:
+      kind: Deployment
+      name: frontend
+      namespace: boutique
+    action: restart
+    explanation_template: >
+      Restarting {name}: trace_error_pct z-score {zscore:.1f} vs baseline
+      (anomaly score {score:.3f} > tau {tau:.3f}), matched rule {rule_id}.
+
+  - rule_id: R12-config-drift-reconcile
+    description: >
+      Manual drift of checkoutservice's PAYMENT_SERVICE_ADDR env var
+      (scenario-12 — the literal Table I S12 fault; no Chaos Mesh CRD is
+      involved, see evaluation/scenarios/scenario-12-config-drift.yaml and
+      evaluation/analysis/run_trial.py's MANUAL_SCENARIOS handling) detected
+      via elevated trace_error_pct -> reconcile checkoutservice against
+      infra/boutique/'s known-good manifests. Matches Table I's S12 recovery
+      verbatim ("detect out-of-sync state; reconcile with active Git
+      repository") — substituted as a direct `kubectl apply -k
+      infra/boutique/` rather than a real GitOps controller, since none is
+      installed (see operator/handlers.py's _execute_reconcile).
+      UNVALIDATED against a real trial yet (added 2026-09-15). Same
+      trace_error_pct collision risk as R11 above.
+    trigger_feature: trace_error_pct
+    target:
+      kind: Deployment
+      name: checkoutservice
+      namespace: boutique
+    action: reconcile
+    explanation_template: >
+      Reconciling {name} against infra/boutique/: trace_error_pct z-score
+      {zscore:.1f} vs baseline (anomaly score {score:.3f} > tau {tau:.3f}),
+      matched rule {rule_id}.
+
   - rule_id: R6-db-pool-exhaustion-scale
     description: >
       Simulated DB connection pool exhaustion on productcatalogservice

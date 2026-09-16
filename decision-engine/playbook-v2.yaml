@@ -1,0 +1,87 @@
+# v2 rule playbook — use ONLY with decision-engine/model-config-v2.yaml and a
+# model trained on a baseline collected with the v2-extended
+# infra/scripts/collect-baseline.sh (per-service features present). Do not
+# point orchestrator.py/run_trial.py at this file with a v1 model-dir — the
+# v2 trigger_features below don't exist in the v1 6-feature scaler and will
+# KeyError.
+#
+# This file exists because decision-engine/playbook.yaml's R3, R5, and R6
+# are documented (docs/experiment-log.md, 2026-09-13) as non-functional for
+# their intended scenarios under the frozen v1 (namespace-wide-aggregate)
+# feature set:
+#   - R3 (scenario-02, memory leak): mem_util sums memory across all 12
+#     boutique services, so cartservice's own leak never moves the aggregate
+#     enough to be the top/matching feature before it gets OOMKilled.
+#   - R5 vs R6 (scenario-09 vs scenario-11): both faults elevate
+#     trace_error_pct (frontend-scoped) simultaneously, and R5 always
+#     outranks R6 by raw z-score regardless of which fault is actually
+#     happening.
+#
+# These v2 rules replace R3/R5/R6's trigger_feature with a per-service
+# signal that should no longer be swamped/shared — UNVALIDATED against a
+# real trial yet, same status R1-R6 started in before their own dry runs
+# (see docs/experiment-log.md). Confirm each of these against a real v2
+# trial before treating them as working; correct trigger_feature/threshold
+# the same way R2's was corrected from trace_error_pct to log_error_rate.
+rules:
+  - rule_id: R3v2-memory-leak-restart
+    description: >
+      Memory exhaustion on cartservice (scenario-02), now detected via
+      cartservice's OWN memory_working_set (mem_util_cartservice) instead of
+      the namespace-wide mem_util aggregate that R3 (v1) uses — see
+      docs/experiment-log.md's 2026-09-13 scenario-02 entry for why the
+      aggregate never carried the signal. Matches Table I's S2 recovery.
+    trigger_feature: mem_util_cartservice
+    target:
+      kind: Deployment
+      name: cartservice
+      namespace: boutique
+    action: restart
+    explanation_template: >
+      Restarting {name}: mem_util_cartservice z-score {zscore:.1f} vs
+      baseline (anomaly score {score:.3f} > tau {tau:.3f}), matched rule
+      {rule_id}.
+
+  - rule_id: R5v2-volume-detachment-restart
+    description: >
+      Simulated volume detachment on redis-cart (scenario-09), now detected
+      via trace_error_pct_cartservice — cartservice is the direct caller of
+      redis-cart, so its own per-service trace error rate should rise when
+      redis-cart is unreachable, independent of scenario-11's
+      productcatalogservice-only bandwidth throttle (which R5 v1 could not
+      distinguish from this fault — both spiked the shared frontend-scoped
+      trace_error_pct). Matches Table I's S9 recovery intent (restart half
+      only — see decision-engine/playbook.yaml's R5 for the volume-remount
+      caveat, unchanged in v2).
+    trigger_feature: trace_error_pct_cartservice
+    target:
+      kind: Deployment
+      name: redis-cart
+      namespace: boutique
+    action: restart
+    explanation_template: >
+      Restarting {name}: trace_error_pct_cartservice z-score {zscore:.1f}
+      vs baseline (anomaly score {score:.3f} > tau {tau:.3f}), matched rule
+      {rule_id}.
+
+  - rule_id: R6v2-db-pool-exhaustion-scale
+    description: >
+      Simulated DB connection pool exhaustion on productcatalogservice
+      (scenario-11), now detected via network_rx_productcatalogservice — a
+      per-service bandwidth reading instead of the namespace-wide network_rx
+      aggregate — so this rule no longer needs to out-rank
+      trace_error_pct_cartservice (R5v2's trigger) by magnitude to win the
+      correct fault. Matches Table I's S11 recovery intent (scale
+      substitution — see decision-engine/playbook.yaml's R6 for why no real
+      DB/pool ConfigMap exists here, unchanged in v2).
+    trigger_feature: network_rx_productcatalogservice
+    target:
+      kind: Deployment
+      name: productcatalogservice
+      namespace: boutique
+    action: scale
+    scale_replicas: 3
+    explanation_template: >
+      Scaling {name} to {replicas} replicas: network_rx_productcatalogservice
+      z-score {zscore:.1f} vs baseline (anomaly score {score:.3f} > tau
+      {tau:.3f}), matched rule {rule_id}.
