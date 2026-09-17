@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # End-to-end v2 pipeline: collect a fresh per-service baseline -> fuse -> train
 # an Isolation Forest under decision-engine/model-config-v2.yaml -> run a real
-# Run A/B campaign for R3v2/R5v2/R6v2's scenarios under playbook-v2.yaml.
+# Run A/B campaign for R3v2/R5v2/R6v2/R7v2's scenarios under playbook-v2.yaml.
 #
 # Exists because nothing in this repo currently chains these steps together:
 # run-training-pipeline.sh stops after training and is hardcoded to the v1
@@ -29,8 +29,8 @@
 #   --config <path>       decision-engine config (default: decision-engine/model-config-v2.yaml)
 #   --playbook <path>     playbook (default: decision-engine/playbook-v2.yaml)
 #   --scenarios <list>    forwarded to run-campaign.sh
-#                         (default: scenario-02-memory-leak,scenario-09-volume-detachment,scenario-11-db-pool-exhaustion
-#                          — the three scenarios R3v2/R5v2/R6v2 exist for)
+#                         (default: scenario-02-memory-leak,scenario-03-disk-io-stress,scenario-09-volume-detachment,scenario-11-db-pool-exhaustion
+#                          — the four scenarios R3v2/R5v2/R6v2/R7v2 exist for)
 #   --conditions <list>   forwarded to run-campaign.sh (default: A,B)
 #   --iterations <N>      forwarded to run-campaign.sh (default: 1)
 #   --skip-baseline       reuse the most recent baseline run instead of collecting a new one
@@ -49,7 +49,7 @@ die() { echo "[v2-pipeline] ERROR: $*" >&2; exit 1; }
 
 CONFIG="decision-engine/model-config-v2.yaml"
 PLAYBOOK="decision-engine/playbook-v2.yaml"
-SCENARIOS="scenario-02-memory-leak,scenario-09-volume-detachment,scenario-11-db-pool-exhaustion"
+SCENARIOS="scenario-02-memory-leak,scenario-03-disk-io-stress,scenario-09-volume-detachment,scenario-11-db-pool-exhaustion"
 CONDITIONS="A,B"
 ITERATIONS=1
 SKIP_BASELINE=0
@@ -146,4 +146,4 @@ log "Running: ${CAMPAIGN_CMD[*]}"
 log "Pipeline complete."
 log "Model: ${MODEL_DIR}"
 log "Trials: evaluation/runs/trials/ (review trial_valid/censored flags before treating as campaign-final data)"
-log "Next: record this run's R3v2/R5v2/R6v2 match outcomes in docs/experiment-log.md, per the 2026-09-15 entry's 'still needed' list."
+log "Next: record this run's R3v2/R5v2/R6v2/R7v2 match outcomes in docs/experiment-log.md, per the 2026-09-15 entry's 'still needed' list."

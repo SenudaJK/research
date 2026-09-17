@@ -51,11 +51,14 @@ METRIC_QUERY_pod_phase='kube_pod_status_phase{namespace="boutique"}'
 # Added to disambiguate faults that the namespace-wide aggregates above
 # swamp or conflate — see docs/experiment-log.md's 2026-09-13 scenario-02
 # (mem_util) and scenario-04/9/11 (rule-collision) entries. Extend this list
-# with more "container=<service>" queries the same way if another scenario
-# turns out to need its own localized signal; no other script change needed.
+# with more per-service queries the same way if another scenario turns out
+# to need its own localized signal; no other script change needed (use
+# `pod=~"<service>-.*"`, never `container=`, from the start — see the note
+# below on why).
 METRIC_KEYS+=(
   memory_working_set_cartservice
   network_receive_bytes_productcatalogservice
+  cpu_usage_paymentservice
 )
 # NOTE: filtered by `pod=~"<service>-.*"`, not `container="<service>"` — every
 # Online Boutique container is literally named "server" regardless of
@@ -66,6 +69,15 @@ METRIC_KEYS+=(
 # came back with these two columns NaN on every row — see docs/experiment-log.md.
 METRIC_QUERY_memory_working_set_cartservice='sum(container_memory_working_set_bytes{namespace="boutique",pod=~"cartservice-.*"})'
 METRIC_QUERY_network_receive_bytes_productcatalogservice='sum(rate(container_network_receive_bytes_total{namespace="boutique",pod=~"productcatalogservice-.*"}[1m]))'
+# Added 2026-09-17 for R7v2-disk-io-stress-evict (decision-engine/playbook-v2.yaml):
+# a real campaign confirmed R7-disk-io-stress-evict (v1, trigger cpu_util)
+# never once matched across 5/5 scenario-03 Run B trials — the namespace-wide
+# cpu_util aggregate always got claimed by R1-cpu-starvation-scale
+# (checkoutservice) or R2-pod-kill-restart (log_error_rate) instead, exactly
+# the collision the v1 rule's own description predicted. paymentservice's own
+# cpu_util fixes this the same way mem_util_cartservice fixed R3. Uses
+# pod=~"paymentservice-.*" from the start, not container=, per the note above.
+METRIC_QUERY_cpu_usage_paymentservice='sum(rate(container_cpu_usage_seconds_total{namespace="boutique",pod=~"paymentservice-.*"}[1m]))'
 
 # Extra per-service Jaeger trace pulls (v2 only) — cartservice is the direct
 # caller of redis-cart, so its own trace error rate is a candidate localized

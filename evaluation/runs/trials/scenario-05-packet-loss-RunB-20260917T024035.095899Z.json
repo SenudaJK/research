@@ -1,0 +1,93 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-05-packet-loss.yaml",
+  "condition": "B",
+  "t0": "2026-09-17T02:37:22Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-17T02:37:34.772581Z",
+  "td_signal": "anomaly_score=0.7213>tau=0.5170",
+  "td_censored": false,
+  "tr": "2026-09-17T02:40:34.742775Z",
+  "tr_censored": false,
+  "mttd_seconds": 12.772581,
+  "mttr_seconds": 192.742775,
+  "availability": 0.9052631578947369,
+  "jaeger_restarts_before": "41",
+  "jaeger_restarts_after": "41",
+  "trial_valid": true,
+  "remediation": {
+    "rule_id": "R5-volume-detachment-restart",
+    "outcome": "created",
+    "action": "restart",
+    "target": {
+      "kind": "Deployment",
+      "name": "redis-cart",
+      "namespace": "boutique"
+    },
+    "matched_feature": "trace_error_pct",
+    "matched_z": 10.280994668696424,
+    "anomaly_score": 0.721296562034063,
+    "tau": 0.5169638250421748,
+    "remediation_action_name": "r5-volume-detachment-restart-1789612654"
+  },
+  "last_match_attempt": {
+    "rule_id": "R5-volume-detachment-restart",
+    "outcome": "created",
+    "action": "restart",
+    "target": {
+      "kind": "Deployment",
+      "name": "redis-cart",
+      "namespace": "boutique"
+    },
+    "matched_feature": "trace_error_pct",
+    "matched_z": 10.280994668696424,
+    "anomaly_score": 0.721296562034063,
+    "tau": 0.5169638250421748,
+    "remediation_action_name": "r5-volume-detachment-restart-1789612654"
+  },
+  "samples": [
+    {
+      "timestamp": "2026-09-17T02:37:34.752668Z",
+      "cpu_util": 0.1590182977407216,
+      "mem_util": 2166.046875,
+      "network_rx": 41.83297796552579,
+      "log_error_rate": 4.6923076923076925,
+      "trace_latency_ms": 0.7658214285714287,
+      "trace_error_pct": 0.5,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.721296562034063
+    },
+    {
+      "timestamp": "2026-09-17T02:38:34.741370Z",
+      "cpu_util": 0.1591325605489007,
+      "mem_util": 2326.35546875,
+      "network_rx": 42.42887661254145,
+      "log_error_rate": 5.076923076923077,
+      "trace_latency_ms": 1.8641638418079096,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 0.6484375,
+      "anomaly_score": 0.5265471718011507
+    },
+    {
+      "timestamp": "2026-09-17T02:39:34.803537Z",
+      "cpu_util": 0.176614657969911,
+      "mem_util": 2317.35546875,
+      "network_rx": 49.389212518594924,
+      "log_error_rate": 5.2,
+      "trace_latency_ms": 1.1203692307692308,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5372308988648358
+    },
+    {
+      "timestamp": "2026-09-17T02:40:34.734222Z",
+      "cpu_util": 0.14030141598446463,
+      "mem_util": 2326.28515625,
+      "network_rx": 39.732404239017896,
+      "log_error_rate": 5.246153846153846,
+      "trace_latency_ms": 1.1406892230576442,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5182167288673062
+    }
+  ]
+}

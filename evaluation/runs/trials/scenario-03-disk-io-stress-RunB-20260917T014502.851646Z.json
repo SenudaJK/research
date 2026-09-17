@@ -1,0 +1,41 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-03-disk-io-stress.yaml",
+  "condition": "B",
+  "t0": "2026-09-17T01:43:56Z",
+  "t0_source": "status.instances.*.startTime",
+  "td": "2026-09-17T01:45:02.344076Z",
+  "td_signal": "anomaly_score=0.5779>tau=0.5170",
+  "td_censored": false,
+  "tr": "2026-09-17T01:45:02.559500Z",
+  "tr_censored": false,
+  "mttd_seconds": 66.344076,
+  "mttr_seconds": 66.5595,
+  "availability": 1.0,
+  "jaeger_restarts_before": "41",
+  "jaeger_restarts_after": "41",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-17T01:44:02.361243Z",
+      "cpu_util": 0.14907225852652264,
+      "mem_util": 2294.51953125,
+      "network_rx": 54.87328108319505,
+      "log_error_rate": 5.338461538461538,
+      "trace_latency_ms": 1.280516304347826,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.48770171584543415
+    },
+    {
+      "timestamp": "2026-09-17T01:45:02.333142Z",
+      "cpu_util": 0.3726702952497782,
+      "mem_util": 2268.3515625,
+      "network_rx": 44.96992198195166,
+      "log_error_rate": 5.384615384615385,
+      "trace_latency_ms": 1.4223190883190886,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5778653897775937
+    }
+  ]
+}

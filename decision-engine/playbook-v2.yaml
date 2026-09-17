@@ -5,10 +5,10 @@
 # v2 trigger_features below don't exist in the v1 6-feature scaler and will
 # KeyError.
 #
-# This file exists because decision-engine/playbook.yaml's R3, R5, and R6
-# are documented (docs/experiment-log.md, 2026-09-13) as non-functional for
-# their intended scenarios under the frozen v1 (namespace-wide-aggregate)
-# feature set:
+# This file exists because decision-engine/playbook.yaml's R3, R5, R6, and R7
+# are documented (docs/experiment-log.md, 2026-09-13 and 2026-09-17) as
+# non-functional for their intended scenarios under the frozen v1
+# (namespace-wide-aggregate) feature set:
 #   - R3 (scenario-02, memory leak): mem_util sums memory across all 12
 #     boutique services, so cartservice's own leak never moves the aggregate
 #     enough to be the top/matching feature before it gets OOMKilled.
@@ -16,8 +16,13 @@
 #     trace_error_pct (frontend-scoped) simultaneously, and R5 always
 #     outranks R6 by raw z-score regardless of which fault is actually
 #     happening.
+#   - R7 (scenario-03, disk I/O stress): cpu_util is shared with
+#     R1-cpu-starvation-scale (checkoutservice) and R2-pod-kill-restart
+#     (log_error_rate, but frequently co-elevated) — confirmed 0/5 real Run B
+#     trials matching R7 on 2026-09-17, every one instead matching R1 or R2
+#     and acting on the wrong service entirely.
 #
-# These v2 rules replace R3/R5/R6's trigger_feature with a per-service
+# These v2 rules replace R3/R5/R6/R7's trigger_feature with a per-service
 # signal that should no longer be swamped/shared — UNVALIDATED against a
 # real trial yet, same status R1-R6 started in before their own dry runs
 # (see docs/experiment-log.md). Confirm each of these against a real v2
@@ -62,6 +67,36 @@ rules:
     explanation_template: >
       Restarting {name}: trace_error_pct_cartservice z-score {zscore:.1f}
       vs baseline (anomaly score {score:.3f} > tau {tau:.3f}), matched rule
+      {rule_id}.
+
+  - rule_id: R7v2-disk-io-stress-evict
+    description: >
+      Disk I/O stress on paymentservice (scenario-03, injected via a
+      disguised cpu-stressor — see evaluation/scenarios/scenario-03-disk-io-stress.yaml),
+      now detected via paymentservice's OWN cpu_util (cpu_util_paymentservice)
+      instead of the namespace-wide cpu_util aggregate that R7 (v1, in
+      decision-engine/playbook.yaml) uses. Added 2026-09-17 after a real
+      5-iteration Run B campaign confirmed R7 never matched once (0/5):
+      cpu_util was claimed by R1-cpu-starvation-scale (checkoutservice, 4/5
+      iterations) or R2-pod-kill-restart (log_error_rate/frontend, 1/5) every
+      single time, exactly the "whichever service's cpu_util contribution is
+      larger at match time wins" collision R7's own v1 description predicted
+      — see docs/experiment-log.md's 2026-09-17 entry for the full trial
+      data. Matches Table I's S3 recovery intent ("evict affected pods to
+      alternative nodes with low disk load"); a bare delete rather than a
+      node-aware eviction, same substitution R7 (v1) uses.
+      UNVALIDATED against a real v2 trial yet — confirm cpu_util_paymentservice
+      actually wins the match (and doesn't itself collide with R1/R2 the way
+      R7 v1 did) before treating this as working, same as every other v2 rule.
+    trigger_feature: cpu_util_paymentservice
+    target:
+      kind: Deployment
+      name: paymentservice
+      namespace: boutique
+    action: evict
+    explanation_template: >
+      Evicting {name}'s pods: cpu_util_paymentservice z-score {zscore:.1f} vs
+      baseline (anomaly score {score:.3f} > tau {tau:.3f}), matched rule
       {rule_id}.
 
   - rule_id: R6v2-db-pool-exhaustion-scale

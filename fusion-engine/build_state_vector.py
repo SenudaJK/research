@@ -146,12 +146,17 @@ def build(run_dir):
         mem_cart_bytes, mem_cart_ok = prom_scalar(metrics_json, "memory_working_set_cartservice")
         net_pcs_bytes_per_sec, net_pcs_ok = prom_scalar(metrics_json, "network_receive_bytes_productcatalogservice")
         _, cart_error_pct, cart_trace_ok = trace_features_for(traces_dir, n, "cartservice")
+        # Added 2026-09-17 for R7v2-disk-io-stress-evict — see
+        # infra/scripts/collect-baseline.sh's own note on why R7 (v1, trigger
+        # cpu_util) never matched across 5/5 real scenario-03 Run B trials.
+        cpu_pay, cpu_pay_ok = prom_scalar(metrics_json, "cpu_usage_paymentservice")
 
         missing_v2 = [
             name for name, ok in [
                 ("mem_util_cartservice", mem_cart_ok),
                 ("network_rx_productcatalogservice", net_pcs_ok),
                 ("trace_error_pct_cartservice", cart_trace_ok),
+                ("cpu_util_paymentservice", cpu_pay_ok),
             ] if not ok
         ]
 
@@ -167,6 +172,7 @@ def build(run_dir):
             "mem_util_cartservice": mem_cart_bytes / (1024 * 1024) if mem_cart_ok else np.nan,
             "network_rx_productcatalogservice": net_pcs_bytes_per_sec / 1024 if net_pcs_ok else np.nan,
             "trace_error_pct_cartservice": cart_error_pct,
+            "cpu_util_paymentservice": cpu_pay if cpu_pay_ok else np.nan,
             "missing_features": ",".join(missing),
             "missing_v2_features": ",".join(missing_v2),
         })

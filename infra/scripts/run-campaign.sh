@@ -14,7 +14,19 @@
 #      wasn't running or fell behind, a stale CR can get reconciled mid-way
 #      through the *next* trial. Before every trial this checks
 #      `kubectl get remediationaction -n boutique` for anything not yet
-#      Succeeded/Failed and refuses to proceed until it clears (or times out).
+#      terminal and refuses to proceed until it clears (or times out).
+#      Terminal phases are Succeeded/Failed/CooldownBlocked/DryRun — all four
+#      are set by operator/handlers.py's one-shot on.create handler, which
+#      never revisits a CR after any of them; only treating Succeeded/Failed
+#      as terminal (the bug found 2026-09-17) makes this wait forever on any
+#      old rate-limited CR that's actually done, not in flight.
+#   3. Operator not running at all (2026-09-17): unlike #2 above (a stale CR
+#      from a *previous* run), if the operator process isn't running right
+#      now, every RemediationAction this campaign creates for a Run B trial
+#      will sit with no phase forever — nothing will ever process it. This
+#      script now refuses to start unless a local `kopf run
+#      operator/handlers.py` process is found (pass --skip-operator-check if
+#      the operator runs somewhere this can't see with `ps`, e.g. in-cluster).
 #
 # Does NOT retry failed/censored trials automatically and does NOT invent
 # scenario/condition combinations beyond what you pass in — every trial's
@@ -45,6 +57,7 @@
 #   --model-dir / --config / --playbook         forwarded to run_trial.py for condition B
 #   --cooldown-buffer <seconds>                 default: 30 (added on top of COOLDOWN_SECONDS)
 #   --pending-cr-timeout <seconds>               default: 120 (give up waiting for stale CRs)
+#   --skip-operator-check                       skip the local kopf-process liveness check (see guard #3 above)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -63,6 +76,7 @@ PLAYBOOK=""
 COOLDOWN_SECONDS="${COOLDOWN_SECONDS:-300}"
 COOLDOWN_BUFFER=30
 PENDING_CR_TIMEOUT=120
+SKIP_OPERATOR_CHECK=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -74,6 +88,7 @@ while [[ $# -gt 0 ]]; do
     --playbook) PLAYBOOK="$2"; shift 2 ;;
     --cooldown-buffer) COOLDOWN_BUFFER="$2"; shift 2 ;;
     --pending-cr-timeout) PENDING_CR_TIMEOUT="$2"; shift 2 ;;
+    --skip-operator-check) SKIP_OPERATOR_CHECK=1; shift ;;
     *) die "unknown argument: $1" ;;
   esac
 done
@@ -85,11 +100,20 @@ fi
 IFS=',' read -ra SCENARIO_LIST <<< "${SCENARIOS}"
 IFS=',' read -ra CONDITION_LIST <<< "${CONDITIONS}"
 
+NEEDS_OPERATOR=0
 for c in "${CONDITION_LIST[@]}"; do
   if [[ "$c" == "B" && -z "${MODEL_DIR}" ]]; then
     die "--model-dir is required when --conditions includes B"
   fi
+  [[ "$c" == "B" ]] && NEEDS_OPERATOR=1
 done
+
+if [[ "${NEEDS_OPERATOR}" -eq 1 && "${SKIP_OPERATOR_CHECK}" -eq 0 ]]; then
+  if ! pgrep -f "kopf run operator/handlers.py" >/dev/null 2>&1; then
+    die "no local 'kopf run operator/handlers.py' process found, but --conditions includes B. Every RemediationAction this campaign creates would sit unprocessed forever (see guard #3 in this script's header comment). Start the operator first (kopf run operator/handlers.py --namespace boutique) or pass --skip-operator-check if it's running somewhere this can't see with ps."
+  fi
+  log "Operator liveness check: found a running 'kopf run operator/handlers.py' process."
+fi
 
 wait_for_no_pending_crs() {
   local waited=0
@@ -103,7 +127,7 @@ try:
 except Exception:
     sys.exit(0)
 items = d.get('items', [])
-pending = [i['metadata']['name'] for i in items if i.get('status', {}).get('phase') not in ('Succeeded', 'Failed')]
+pending = [i['metadata']['name'] for i in items if i.get('status', {}).get('phase') not in ('Succeeded', 'Failed', 'CooldownBlocked', 'DryRun')]
 print(','.join(pending))
 " 2>/dev/null || true)"
     if [[ -z "${pending}" ]]; then

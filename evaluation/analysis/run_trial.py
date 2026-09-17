@@ -75,6 +75,11 @@ METRIC_QUERIES = {
     # always censors) until found via a live campaign run. See docs/experiment-log.md.
     "memory_working_set_cartservice": 'sum(container_memory_working_set_bytes{namespace="boutique",pod=~"cartservice-.*"})',
     "network_receive_bytes_productcatalogservice": 'sum(rate(container_network_receive_bytes_total{namespace="boutique",pod=~"productcatalogservice-.*"}[1m]))',
+    # Added 2026-09-17 for R7v2-disk-io-stress-evict — mirrors the same key
+    # added to infra/scripts/collect-baseline.sh; see that file's own note on
+    # why R7 (v1, trigger cpu_util) never matched across 5/5 real scenario-03
+    # Run B trials.
+    "cpu_usage_paymentservice": 'sum(rate(container_cpu_usage_seconds_total{namespace="boutique",pod=~"paymentservice-.*"}[1m]))',
 }
 FEATURES = ["cpu_util", "mem_util", "network_rx", "log_error_rate", "trace_latency_ms", "trace_error_pct"]
 
@@ -359,9 +364,11 @@ def take_sample(v2=False):
         mem_cart = prom_query(METRIC_QUERIES["memory_working_set_cartservice"])
         net_pcs = prom_query(METRIC_QUERIES["network_receive_bytes_productcatalogservice"])
         _, cart_err_pct = trace_features(service="cartservice")
+        cpu_pay = prom_query(METRIC_QUERIES["cpu_usage_paymentservice"])
         sample["mem_util_cartservice"] = mem_cart / (1024 * 1024) if mem_cart is not None else None
         sample["network_rx_productcatalogservice"] = net_pcs / 1024 if net_pcs is not None else None
         sample["trace_error_pct_cartservice"] = cart_err_pct
+        sample["cpu_util_paymentservice"] = cpu_pay
     return sample
 
 
@@ -472,19 +479,33 @@ def resolve_dynamic_target(target):
 
 
 def match_and_emit(sample, scaler, rules, score, tau, z_threshold, features):
-    """Returns True if a RemediationAction was actually created, False if no
-    rule matched yet (caller should keep retrying on later samples)."""
+    """Returns (acted, record). acted=True only once a RemediationAction was
+    actually created — caller should keep retrying on later samples while
+    False. `record` is always populated with the match attempt's outcome
+    (even when nothing matched/nothing was created) so main() can persist it
+    into the trial JSON — previously this was only ever printed to stdout
+    and lost the moment the terminal scrollback did (see docs/experiment-log.md,
+    2026-09-17: scenario-03's actual rule matches had to be reconstructed
+    from still-live RemediationAction CRs on the cluster after the fact)."""
     import kubernetes
     rule, matched_feature, matched_z = match_rule(sample, scaler, rules, z_threshold, features)
     if rule is None:
         log(f"anomaly_score={score:.4f} > tau={tau:.4f}, top feature={matched_feature} "
             f"(z={matched_z:.2f}) — NO MATCHING RULE")
-        return False
+        return False, {
+            "rule_id": None, "outcome": "no_matching_rule",
+            "top_feature": matched_feature, "top_z": matched_z,
+            "anomaly_score": score, "tau": tau,
+        }
     target = resolve_dynamic_target(rule["target"])
     if target is None:
         log(f"rule {rule['rule_id']} matched but its dynamic target (Node/AUTO) "
             "could not be resolved yet — no unhealthy pod found, will retry on next sample")
-        return False
+        return False, {
+            "rule_id": rule["rule_id"], "outcome": "dynamic_target_unresolved",
+            "matched_feature": matched_feature, "matched_z": matched_z,
+            "anomaly_score": score, "tau": tau,
+        }
     name = f"{rule['rule_id'].lower()}-{int(time.time())}"
     explanation = rule["explanation_template"].format(
         name=target["name"], replicas=rule.get("scale_replicas"),
@@ -518,10 +539,20 @@ def match_and_emit(sample, scaler, rules, score, tau, z_threshold, features):
         )
     except Exception as e:
         log(f"RemediationAction create failed/timed out ({e}) — will retry on next sample")
-        return False
+        return False, {
+            "rule_id": rule["rule_id"], "outcome": "create_failed_or_timed_out",
+            "matched_feature": matched_feature, "matched_z": matched_z,
+            "anomaly_score": score, "tau": tau, "error": str(e),
+        }
     log(f"Created RemediationAction/{created['metadata']['name']} — rule={rule['rule_id']}, "
         f"matched_feature={matched_feature} (z={matched_z:.2f})")
-    return True
+    return True, {
+        "rule_id": rule["rule_id"], "outcome": "created",
+        "action": rule["action"], "target": target,
+        "matched_feature": matched_feature, "matched_z": matched_z,
+        "anomaly_score": score, "tau": tau,
+        "remediation_action_name": created["metadata"]["name"],
+    }
 
 
 def recovery_check(recent_samples):
@@ -599,6 +630,8 @@ def main():
     tr = None
     acted = False
     availability = None
+    remediation = None
+    last_match_attempt = None
 
     try:
         start = time.time()
@@ -631,7 +664,11 @@ def main():
                     # up while log_error_rate had, on 2026-09-07's first attempt
                     # at this fix). Td itself must not move once set.
                     if not acted:
-                        acted = match_and_emit(sample, scaler, rules, score, threshold["tau"], z_threshold, features)
+                        acted, last_match_attempt = match_and_emit(
+                            sample, scaler, rules, score, threshold["tau"], z_threshold, features
+                        )
+                        if acted:
+                            remediation = last_match_attempt
 
             if recovery_check(samples):
                 tr = datetime.now(timezone.utc)
@@ -678,6 +715,15 @@ def main():
         "jaeger_restarts_before": restarts_before,
         "jaeger_restarts_after": restarts_after,
         "trial_valid": valid,
+        # Condition B only: the actual RemediationAction created (rule_id,
+        # action, target, matched_feature/z, remediation_action_name), or
+        # None if Run A / no rule ever matched. last_match_attempt records
+        # the most recent match_and_emit() outcome even when it never led to
+        # an action (e.g. "no_matching_rule" or "dynamic_target_unresolved")
+        # — previously this was only ever printed to stdout, not saved (see
+        # match_and_emit()'s docstring / docs/experiment-log.md, 2026-09-17).
+        "remediation": remediation,
+        "last_match_attempt": last_match_attempt,
         "samples": samples,
     }
 
@@ -697,6 +743,13 @@ def main():
     print(f"MTTR: {mttr:.1f}s")
     print(f"Availability: {availability:.4f}" if availability is not None else "Availability: n/a")
     print(f"Trial valid (no Jaeger restart during capture): {valid}")
+    if remediation:
+        print(f"Remediation: {remediation['rule_id']} -> {remediation['action']} "
+              f"{remediation['target']['kind']}/{remediation['target']['name']} "
+              f"(RemediationAction/{remediation['remediation_action_name']})")
+    elif args.condition == "B" and last_match_attempt:
+        print(f"Remediation: none — {last_match_attempt['outcome']} "
+              f"(rule_id={last_match_attempt['rule_id']})")
     print(f"Saved: {out_path}")
     if not valid:
         print("\nWARNING: Jaeger restarted during this trial — DISCARD, do not log as evidence.")

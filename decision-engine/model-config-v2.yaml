@@ -1,7 +1,9 @@
 # v2 model config — adds per-service features alongside the original 6, to
 # fix the rule-collision limitation documented in docs/experiment-log.md
 # (2026-09-13 entries: R3/mem_util dead for scenario-02; R5-vs-R6 collision
-# for scenario-09/11). This is a DELIBERATELY SEPARATE model/condition from
+# for scenario-09/11; 2026-09-17: R7/cpu_util confirmed dead 0/5 for
+# scenario-03, same mechanism as R1-vs-R7). This is a DELIBERATELY SEPARATE
+# model/condition from
 # decision-engine/model-config.yaml — see that file's own comment and
 # decision-engine/README.md: the v1 model and its frozen tau, trained on
 # evaluation/runs/baseline/20260906T023729Z, must never be retrained or
@@ -25,6 +27,7 @@ features:
   - mem_util_cartservice
   - network_rx_productcatalogservice
   - trace_error_pct_cartservice
+  - cpu_util_paymentservice
 
 # Same hyperparameters as v1 (decision-engine/model-config.yaml) — this
 # config only changes the feature set, not the algorithm, so any detection
@@ -52,7 +55,7 @@ local_outlier_factor:
 # 2026-09-07).
 threshold_percentile: 95
 
-# Mirrors decision-engine/model-config.yaml — a 9-feature model needs at
+# Mirrors decision-engine/model-config.yaml — a 10-feature model needs at
 # least as many samples as the 6-feature one to avoid the same
 # too-shallow-trees problem found at 30 samples (docs/measurement-protocol.md).
 min_training_samples: 200
