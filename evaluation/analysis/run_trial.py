@@ -66,8 +66,15 @@ METRIC_QUERIES = {
     ),
     # v2 per-service metrics (decision-engine/model-config-v2.yaml only) —
     # mirrors the same keys added to infra/scripts/collect-baseline.sh.
-    "memory_working_set_cartservice": 'sum(container_memory_working_set_bytes{namespace="boutique",container="cartservice"})',
-    "network_receive_bytes_productcatalogservice": 'sum(rate(container_network_receive_bytes_total{namespace="boutique",container="productcatalogservice"}[1m]))',
+    # NOTE: filtered by pod=~"<service>-.*", not container="<service>" — every
+    # Online Boutique container is literally named "server" regardless of
+    # Deployment name, so a container= filter matches nothing. Same bug as
+    # collect-baseline.sh's v2 queries (fixed there 2026-09-16); this copy
+    # was missed at the time and caused every v2 Run B trial's anomaly_score
+    # to be None (missing features -> score_sample() can't score -> MTTD
+    # always censors) until found via a live campaign run. See docs/experiment-log.md.
+    "memory_working_set_cartservice": 'sum(container_memory_working_set_bytes{namespace="boutique",pod=~"cartservice-.*"})',
+    "network_receive_bytes_productcatalogservice": 'sum(rate(container_network_receive_bytes_total{namespace="boutique",pod=~"productcatalogservice-.*"}[1m]))',
 }
 FEATURES = ["cpu_util", "mem_util", "network_rx", "log_error_rate", "trace_latency_ms", "trace_error_pct"]
 

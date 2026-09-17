@@ -1,0 +1,69 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-02-memory-leak.yaml",
+  "condition": "A",
+  "t0": "2026-09-16T12:17:59Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-16T12:18:11.762150Z",
+  "td_signal": "pod-not-ready",
+  "td_censored": false,
+  "tr": "2026-09-16T12:22:11.704903Z",
+  "tr_censored": false,
+  "mttd_seconds": 12.76215,
+  "mttr_seconds": 252.704903,
+  "availability": 0.7173913043478262,
+  "jaeger_restarts_before": "34",
+  "jaeger_restarts_after": "34",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-16T12:18:11.700677Z",
+      "cpu_util": 0.18129130170560318,
+      "mem_util": 2023.17578125,
+      "network_rx": 45.971758832150755,
+      "log_error_rate": 5.861538461538461,
+      "trace_latency_ms": 1.71830625,
+      "trace_error_pct": 0.1625,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-16T12:19:11.699699Z",
+      "cpu_util": 0.18484523400395175,
+      "mem_util": 2230.62890625,
+      "network_rx": 19.014200744195676,
+      "log_error_rate": 5.938461538461539,
+      "trace_latency_ms": 1.1172970297029703,
+      "trace_error_pct": 0.37623762376237624,
+      "frontend_success_rate": 0.1785714285714285
+    },
+    {
+      "timestamp": "2026-09-16T12:20:11.728063Z",
+      "cpu_util": 0.25290243257081485,
+      "mem_util": 2318.46875,
+      "network_rx": 48.544133370355105,
+      "log_error_rate": 5.507692307692308,
+      "trace_latency_ms": 1.3169228723404256,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 0.6614173228346456
+    },
+    {
+      "timestamp": "2026-09-16T12:21:11.701757Z",
+      "cpu_util": 0.15631984352892545,
+      "mem_util": 2324.8515625,
+      "network_rx": 40.271691619315405,
+      "log_error_rate": 5.369230769230769,
+      "trace_latency_ms": 1.9370000000000003,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-16T12:22:11.704848Z",
+      "cpu_util": 0.1712091065486892,
+      "mem_util": 2337.31640625,
+      "network_rx": 42.37307069808313,
+      "log_error_rate": 5.338461538461538,
+      "trace_latency_ms": 2.027685714285714,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

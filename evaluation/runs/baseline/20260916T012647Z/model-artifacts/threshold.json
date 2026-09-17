@@ -1,0 +1,18 @@
+{
+  "tau": 0.5685993844616969,
+  "percentile": 95,
+  "source_run_dir": "evaluation/runs/baseline/20260916T012647Z",
+  "features": [
+    "cpu_util",
+    "mem_util",
+    "network_rx",
+    "log_error_rate",
+    "trace_latency_ms",
+    "trace_error_pct",
+    "mem_util_cartservice",
+    "network_rx_productcatalogservice",
+    "trace_error_pct_cartservice"
+  ],
+  "trainable_override": false,
+  "trainable_override_samples": null
+}

@@ -1,0 +1,59 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-02-memory-leak.yaml",
+  "condition": "A",
+  "t0": "2026-09-16T09:16:14Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-16T09:16:25.928092Z",
+  "td_signal": "pod-not-ready",
+  "td_censored": false,
+  "tr": "2026-09-16T09:20:32.114569Z",
+  "tr_censored": false,
+  "mttd_seconds": 11.928092,
+  "mttr_seconds": 258.114569,
+  "availability": 0.7996070726915521,
+  "jaeger_restarts_before": "33",
+  "jaeger_restarts_after": "33",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-16T09:16:25.786920Z",
+      "cpu_util": 0.2317308431171082,
+      "mem_util": 2148.34765625,
+      "network_rx": 44.652946845348076,
+      "log_error_rate": 4.969230769230769,
+      "trace_latency_ms": 1.212722891566265,
+      "trace_error_pct": 0.3614457831325301,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-16T09:18:32.143950Z",
+      "cpu_util": 0.2427269242244274,
+      "mem_util": 2331.5859375,
+      "network_rx": 24.770100960052996,
+      "log_error_rate": 4.984615384615385,
+      "trace_latency_ms": 1.868083573487032,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 0.1869158878504673
+    },
+    {
+      "timestamp": "2026-09-16T09:19:32.136157Z",
+      "cpu_util": 0.20541150881245168,
+      "mem_util": 2310.3671875,
+      "network_rx": 44.972927002293254,
+      "log_error_rate": 5.461538461538462,
+      "trace_latency_ms": 1.6673273657289,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-16T09:20:32.114494Z",
+      "cpu_util": 0.18570493527820103,
+      "mem_util": 2332.04296875,
+      "network_rx": 44.35049099346169,
+      "log_error_rate": 5.246153846153846,
+      "trace_latency_ms": 1.3949492957746479,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

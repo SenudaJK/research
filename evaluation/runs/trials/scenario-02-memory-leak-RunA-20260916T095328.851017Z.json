@@ -1,0 +1,29 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-02-memory-leak.yaml",
+  "condition": "A",
+  "t0": "2026-09-16T09:40:55Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-16T09:41:07.000644Z",
+  "td_signal": "pod-not-ready",
+  "td_censored": false,
+  "tr": null,
+  "tr_censored": true,
+  "mttd_seconds": 12.000644,
+  "mttr_seconds": 600.0,
+  "availability": 1.0,
+  "jaeger_restarts_before": "33",
+  "jaeger_restarts_after": "33",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-16T09:41:06.931641Z",
+      "cpu_util": 0.1538376799976504,
+      "mem_util": 2213.40234375,
+      "network_rx": 45.296471005484946,
+      "log_error_rate": 4.938461538461539,
+      "trace_latency_ms": 1.6722747252747254,
+      "trace_error_pct": 0.3956043956043956,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

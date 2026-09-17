@@ -9,17 +9,18 @@
   "boutique_namespace": "boutique",
   "observability_namespace": "observability",
   "metric_keys": [
-  "red_request_rate",
-  "red_error_rate",
-  "red_avg_duration_ms",
-  "frontend_success_rate",
-  "cpu_usage",
-  "memory_working_set",
-  "network_receive_bytes",
-  "pod_phase",
-  "memory_working_set_cartservice",
-  "network_receive_bytes_productcatalogservice"
-],
+    "red_request_rate",
+    "red_error_rate",
+    "red_avg_duration_ms",
+    "frontend_success_rate",
+    "cpu_usage",
+    "memory_working_set",
+    "network_receive_bytes",
+    "pod_phase",
+    "memory_working_set_cartservice",
+    "network_receive_bytes_productcatalogservice"
+  ],
   "log_selector": "{namespace=\"boutique\"}",
-  "started_at": "2026-09-16T03:49:24Z"
+  "started_at": "2026-09-16T03:49:24Z",
+  "ended_at": "2026-09-16T10:34:03Z"
 }

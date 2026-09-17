@@ -1,0 +1,39 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-02-memory-leak.yaml",
+  "condition": "A",
+  "t0": "2026-09-16T10:43:37Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-16T10:43:49.248863Z",
+  "td_signal": "pod-not-ready",
+  "td_censored": false,
+  "tr": null,
+  "tr_censored": true,
+  "mttd_seconds": 12.248863,
+  "mttr_seconds": 600.0,
+  "availability": 0.3141025641025641,
+  "jaeger_restarts_before": "34",
+  "jaeger_restarts_after": "34",
+  "trial_valid": true,
+  "samples": [
+    {
+      "timestamp": "2026-09-16T10:43:49.195566Z",
+      "cpu_util": 0.1614688141280687,
+      "mem_util": 2186.984375,
+      "network_rx": 46.033538831597006,
+      "log_error_rate": 4.815384615384615,
+      "trace_latency_ms": 1.3743703703703702,
+      "trace_error_pct": 0.37037037037037035,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-16T10:59:47.762424Z",
+      "cpu_util": 0.1477430509182359,
+      "mem_util": 2237.984375,
+      "network_rx": 16.07798722568811,
+      "log_error_rate": 0.0,
+      "trace_latency_ms": 11.105032608695652,
+      "trace_error_pct": 0.3695652173913043,
+      "frontend_success_rate": 0.17948717948717952
+    }
+  ]
+}

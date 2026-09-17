@@ -57,8 +57,15 @@ METRIC_KEYS+=(
   memory_working_set_cartservice
   network_receive_bytes_productcatalogservice
 )
-METRIC_QUERY_memory_working_set_cartservice='sum(container_memory_working_set_bytes{namespace="boutique",container="cartservice"})'
-METRIC_QUERY_network_receive_bytes_productcatalogservice='sum(rate(container_network_receive_bytes_total{namespace="boutique",container="productcatalogservice"}[1m]))'
+# NOTE: filtered by `pod=~"<service>-.*"`, not `container="<service>"` — every
+# Online Boutique container is literally named "server" regardless of
+# Deployment name (see infra/boutique/patches/*.yaml), so a container= filter
+# silently matches nothing. container_network_receive_bytes_total is also
+# reported per-pod, not per-container, by cAdvisor, so container= was doubly
+# wrong there. Found 2026-09-16 when the first real 200-sample v2 baseline
+# came back with these two columns NaN on every row — see docs/experiment-log.md.
+METRIC_QUERY_memory_working_set_cartservice='sum(container_memory_working_set_bytes{namespace="boutique",pod=~"cartservice-.*"})'
+METRIC_QUERY_network_receive_bytes_productcatalogservice='sum(rate(container_network_receive_bytes_total{namespace="boutique",pod=~"productcatalogservice-.*"}[1m]))'
 
 # Extra per-service Jaeger trace pulls (v2 only) — cartservice is the direct
 # caller of redis-cart, so its own trace error rate is a candidate localized
@@ -122,7 +129,7 @@ cleanup() {
 trap cleanup EXIT
 
 sleep 5
-curl -sf "http://127.0.0.1:19090/api/v1/status/config" >/dev/null || die "Prometheus port-forward failed"
+curl -sf --connect-timeout 5 --max-time 15 "http://127.0.0.1:19090/api/v1/status/config" >/dev/null || die "Prometheus port-forward failed"
 log "Prometheus reachable"
 
 END_TIME=$((SECONDS + BASELINE_DURATION_SECONDS))
@@ -151,7 +158,7 @@ while [[ ${SAMPLE} -lt ${TARGET_SAMPLES} && ${SECONDS} -lt ${HARD_CAP_TIME} ]]; 
   echo "{\"timestamp\":\"${TS}\",\"queries\":{}}" > "${METRICS_FILE}"
   for key in "${METRIC_KEYS[@]}"; do
     q="$(query_for "${key}")"
-    RESULT="$(curl -sfG "http://127.0.0.1:19090/api/v1/query" --data-urlencode "query=${q}" 2>/dev/null || echo '{"status":"error"}')"
+    RESULT="$(curl -sfG --connect-timeout 5 --max-time 15 "http://127.0.0.1:19090/api/v1/query" --data-urlencode "query=${q}" 2>/dev/null || echo '{"status":"error"}')"
     jq --arg k "${key}" --arg q "${q}" --argjson r "${RESULT}" \
       '.queries[$k] = ($r + {promql: $q})' "${METRICS_FILE}" > "${METRICS_FILE}.tmp"
     mv "${METRICS_FILE}.tmp" "${METRICS_FILE}"
@@ -159,7 +166,7 @@ while [[ ${SAMPLE} -lt ${TARGET_SAMPLES} && ${SECONDS} -lt ${HARD_CAP_TIME} ]]; 
 
   NOW_NS=$(date +%s)000000000
   START_NS=$(( ( $(date +%s) - 120 ) * 1000000000 ))
-  curl -sfG "http://127.0.0.1:13100/loki/api/v1/query_range" \
+  curl -sfG --connect-timeout 5 --max-time 15 "http://127.0.0.1:13100/loki/api/v1/query_range" \
     --data-urlencode "query={namespace=\"${BOUTIQUE_NAMESPACE}\"}" \
     --data-urlencode "start=${START_NS}" \
     --data-urlencode "end=${NOW_NS}" \
@@ -167,11 +174,11 @@ while [[ ${SAMPLE} -lt ${TARGET_SAMPLES} && ${SECONDS} -lt ${HARD_CAP_TIME} ]]; 
     -o "${OUTPUT_DIR}/logs/sample_${SAMPLE}.json" 2>/dev/null || \
     echo '{"status":"error"}' > "${OUTPUT_DIR}/logs/sample_${SAMPLE}.json"
 
-  curl -sf "http://127.0.0.1:16686/api/services" \
+  curl -sf --connect-timeout 5 --max-time 15 "http://127.0.0.1:16686/api/services" \
     -o "${OUTPUT_DIR}/traces/services_${SAMPLE}.json" 2>/dev/null || \
     echo '{"data":[],"total":0}' > "${OUTPUT_DIR}/traces/services_${SAMPLE}.json"
 
-  curl -sfG "http://127.0.0.1:16686/api/traces" \
+  curl -sfG --connect-timeout 5 --max-time 15 "http://127.0.0.1:16686/api/traces" \
     --data-urlencode 'service=frontend' \
     --data-urlencode 'limit=20' \
     -o "${OUTPUT_DIR}/traces/sample_${SAMPLE}.json" 2>/dev/null || \
@@ -179,7 +186,7 @@ while [[ ${SAMPLE} -lt ${TARGET_SAMPLES} && ${SECONDS} -lt ${HARD_CAP_TIME} ]]; 
 
   # v2 per-service trace pulls — see PER_SERVICE_TRACE_SERVICES above.
   for svc in "${PER_SERVICE_TRACE_SERVICES[@]}"; do
-    curl -sfG "http://127.0.0.1:16686/api/traces" \
+    curl -sfG --connect-timeout 5 --max-time 15 "http://127.0.0.1:16686/api/traces" \
       --data-urlencode "service=${svc}" \
       --data-urlencode 'limit=20' \
       -o "${OUTPUT_DIR}/traces/sample_${SAMPLE}_${svc}.json" 2>/dev/null || \
