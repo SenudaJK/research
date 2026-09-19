@@ -1,0 +1,71 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-10-http-5xx.yaml",
+  "condition": "B",
+  "t0": "2026-09-17T11:59:12Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-17T13:26:55.376442Z",
+  "td_signal": "anomaly_score=0.5220>tau=0.5170",
+  "td_censored": false,
+  "tr": "2026-09-17T13:27:55.365105Z",
+  "tr_censored": false,
+  "mttd_seconds": 5263.376442,
+  "mttr_seconds": 5323.365105,
+  "availability": 0.9887830687830688,
+  "jaeger_restarts_before": "49",
+  "jaeger_restarts_after": "49",
+  "trial_valid": true,
+  "remediation": {
+    "rule_id": "R2-pod-kill-restart",
+    "outcome": "created",
+    "action": "restart",
+    "target": {
+      "kind": "Deployment",
+      "name": "frontend",
+      "namespace": "boutique"
+    },
+    "matched_feature": "log_error_rate",
+    "matched_z": 14.896981098465956,
+    "anomaly_score": 0.5220074604206556,
+    "tau": 0.5169638250421748,
+    "remediation_action_name": "r2-pod-kill-restart-1789651615"
+  },
+  "last_match_attempt": {
+    "rule_id": "R2-pod-kill-restart",
+    "outcome": "created",
+    "action": "restart",
+    "target": {
+      "kind": "Deployment",
+      "name": "frontend",
+      "namespace": "boutique"
+    },
+    "matched_feature": "log_error_rate",
+    "matched_z": 14.896981098465956,
+    "anomaly_score": 0.5220074604206556,
+    "tau": 0.5169638250421748,
+    "remediation_action_name": "r2-pod-kill-restart-1789651615"
+  },
+  "samples": [
+    {
+      "timestamp": "2026-09-17T13:26:55.359410Z",
+      "cpu_util": 0.14993438231691936,
+      "mem_util": 2350.05859375,
+      "network_rx": 49.296861053617846,
+      "log_error_rate": 5.676923076923077,
+      "trace_latency_ms": 1.3411718309859155,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5220074604206556
+    },
+    {
+      "timestamp": "2026-09-17T13:27:55.351758Z",
+      "cpu_util": 0.13445494803151628,
+      "mem_util": 2349.7890625,
+      "network_rx": 41.757733720868245,
+      "log_error_rate": 5.6923076923076925,
+      "trace_latency_ms": 3.078521963824289,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5754766736265292
+    }
+  ]
+}

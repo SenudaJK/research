@@ -1,0 +1,41 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-10-http-5xx.yaml",
+  "condition": "A",
+  "t0": "2026-09-17T11:59:12Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-17T12:08:27.851554Z",
+  "td_signal": "pod-not-ready",
+  "td_censored": false,
+  "tr": "2026-09-17T12:09:27.738043Z",
+  "tr_censored": false,
+  "mttd_seconds": 555.851554,
+  "mttr_seconds": 615.738043,
+  "availability": null,
+  "jaeger_restarts_before": "49",
+  "jaeger_restarts_after": "49",
+  "trial_valid": true,
+  "remediation": null,
+  "last_match_attempt": null,
+  "samples": [
+    {
+      "timestamp": "2026-09-17T12:08:27.756907Z",
+      "cpu_util": 0.06749069005575685,
+      "mem_util": 2201.35546875,
+      "network_rx": 2.921320616602735,
+      "log_error_rate": 2.7846153846153845,
+      "trace_latency_ms": 0.0,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-17T12:09:27.737951Z",
+      "cpu_util": 0.06957989709409446,
+      "mem_util": 2201.71875,
+      "network_rx": 2.753680335624202,
+      "log_error_rate": 2.7846153846153845,
+      "trace_latency_ms": 0.0,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

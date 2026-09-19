@@ -1,0 +1,41 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-12-config-drift.yaml",
+  "condition": "A",
+  "t0": "2026-09-17T15:09:56.718431Z",
+  "t0_source": "kubectl_patch_timestamp",
+  "td": null,
+  "td_signal": null,
+  "td_censored": true,
+  "tr": "2026-09-17T15:11:02.168274Z",
+  "tr_censored": false,
+  "mttd_seconds": 600.0,
+  "mttr_seconds": 65.449843,
+  "availability": 1.0,
+  "jaeger_restarts_before": "50",
+  "jaeger_restarts_after": "50",
+  "trial_valid": true,
+  "remediation": null,
+  "last_match_attempt": null,
+  "samples": [
+    {
+      "timestamp": "2026-09-17T15:10:02.006157Z",
+      "cpu_util": 0.12871134512527044,
+      "mem_util": 2303.5390625,
+      "network_rx": 33.934643978703484,
+      "log_error_rate": 6.384615384615385,
+      "trace_latency_ms": 1.2488083989501313,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-17T15:11:02.087618Z",
+      "cpu_util": 0.12003843959810448,
+      "mem_util": 2301.02734375,
+      "network_rx": 39.09889463371587,
+      "log_error_rate": 6.323076923076923,
+      "trace_latency_ms": 7.594597855227882,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

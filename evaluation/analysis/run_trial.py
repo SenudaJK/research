@@ -92,8 +92,26 @@ def die(msg):
     sys.exit(f"[trial] ERROR: {msg}")
 
 
-def sh(cmd, check=True):
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+def sh(cmd, check=True, timeout=60):
+    """Runs a shell command with a bounded timeout — found missing 2026-09-17
+    when scenario-10's cleanup_scenario() `kubectl delete -f` hung for 3h41m:
+    a HTTPChaos resource's chaos-mesh/records finalizer never cleared because
+    Chaos Mesh kept retrying recovery against a pod that no longer existed
+    (same failure class as the 2026-09-13 scenario-09/IOChaos finding, a
+    different root cause but the identical symptom — kubectl delete blocking
+    forever with nothing bounding it). Every other subprocess call in this
+    file (curl in collect-baseline.sh, the K8s API CR-creation call) already
+    had a timeout after earlier incidents; this was the one gap. On timeout:
+    check=True dies with a clear message instead of hanging silently forever;
+    check=False returns "" so the caller's existing fallback logic runs, same
+    as any other command failure."""
+    try:
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        if check:
+            die(f"command timed out after {timeout}s: {cmd}")
+        log(f"command timed out after {timeout}s (continuing): {cmd}")
+        return ""
     if check and result.returncode != 0:
         die(f"command failed: {cmd}\n{result.stderr}")
     return result.stdout.strip()
@@ -150,6 +168,34 @@ def clear_and_apply(scenario_file):
     if "kind:" not in Path(scenario_file).read_text():
         die(f"{scenario_file} has no Kubernetes resource (e.g. scenario-12 is manual-only)")
     sh(f"kubectl delete -f {scenario_file} --ignore-not-found", check=False)
+    # sh()'s 60s bound (added earlier today) stops the delete from hanging
+    # forever, but a timed-out delete hasn't necessarily finished — a
+    # resource stuck Terminating on a finalizer (chaos-mesh/records) is still
+    # there. Observed 2026-09-17: a HTTPChaos injection failed at the daemon
+    # level ("no running task found"), got stuck this way, and every
+    # subsequent iteration's "fresh" apply silently patched the SAME zombie
+    # object instead of creating a new one — capture_t0() then kept reading
+    # that object's original, ever-more-stale containerRecords timestamp
+    # across 8 consecutive trials (4 Run A, 4 Run B, all moved to
+    # evaluation/runs/trials/invalid/) before anyone noticed the pattern.
+    # Force-clear any leftover finalizers here so one infra hiccup can't
+    # cascade into every trial after it.
+    leftover = sh(f"kubectl get -f {scenario_file} -o name", check=False)
+    if leftover:
+        log(f"{leftover} still present after delete (stuck finalizer?) — force-clearing")
+        for ref_leftover in leftover.splitlines():
+            rtype, rname = ref_leftover.split("/", 1)
+            rns = sh(
+                f"kubectl get {rtype} {rname} -A -o jsonpath='{{.items[0].metadata.namespace}}'",
+                check=False,
+            ) or "chaos-mesh"
+            sh(f'kubectl patch {rtype} {rname} -n {rns} --type=merge -p \'{{"metadata":{{"finalizers":null}}}}\'', check=False)
+        for _ in range(10):
+            if not sh(f"kubectl get -f {scenario_file} -o name", check=False):
+                break
+            time.sleep(1)
+        else:
+            die(f"{scenario_file}'s resource is still present after force-clearing finalizers — investigate manually before trusting any further trials")
     ref = sh(f"kubectl apply -f {scenario_file} -o name")
     resource_type, resource_name = ref.split("/", 1)
     namespace = sh(
@@ -618,6 +664,20 @@ def main():
 
         active = wait_for_active(resource_type, resource_name, namespace)
         log(f"Experiment active: {active}")
+        if not active:
+            # Previously logged and ignored — capture_t0() would then happily
+            # read whatever stale containerRecords timestamp it found (e.g.
+            # a still-Terminating zombie from a prior iteration's failed
+            # cleanup), producing a trial whose T0 has nothing to do with
+            # this iteration's actual fault. See clear_and_apply()'s comment
+            # for the 2026-09-17 incident this caused (8 consecutive
+            # trials silently measuring against one dead resource). Failing
+            # loudly here costs one trial; staying silent cost eight.
+            die(
+                f"{resource_type}/{resource_name} never reached desiredPhase=Run — "
+                f"refusing to trust its T0. Check for a stuck resource "
+                f"(kubectl get {resource_type} -A) before re-running."
+            )
 
         t0_str, t0_source = capture_t0(resource_type, resource_name, namespace, apply_ts)
     t0 = datetime.fromisoformat(t0_str.replace("Z", "+00:00"))

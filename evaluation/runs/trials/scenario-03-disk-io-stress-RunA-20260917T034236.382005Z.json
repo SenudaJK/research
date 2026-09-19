@@ -1,0 +1,41 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-03-disk-io-stress.yaml",
+  "condition": "A",
+  "t0": "2026-09-17T03:41:29Z",
+  "t0_source": "status.instances.*.startTime",
+  "td": null,
+  "td_signal": null,
+  "td_censored": true,
+  "tr": "2026-09-17T03:42:36.028732Z",
+  "tr_censored": false,
+  "mttd_seconds": 600.0,
+  "mttr_seconds": 67.028732,
+  "availability": 1.0,
+  "jaeger_restarts_before": "43",
+  "jaeger_restarts_after": "43",
+  "trial_valid": true,
+  "remediation": null,
+  "last_match_attempt": null,
+  "samples": [
+    {
+      "timestamp": "2026-09-17T03:41:35.945042Z",
+      "cpu_util": 0.12869694116462346,
+      "mem_util": 2335.43359375,
+      "network_rx": 39.66583976940931,
+      "log_error_rate": 5.3538461538461535,
+      "trace_latency_ms": 1.5493501945525292,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-17T03:42:35.917488Z",
+      "cpu_util": 0.4993886451101599,
+      "mem_util": 2327.29296875,
+      "network_rx": 53.63406884083281,
+      "log_error_rate": 5.430769230769231,
+      "trace_latency_ms": 1.8472213114754101,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-10-http-5xx.yaml",
+  "condition": "B",
+  "t0": "2026-09-17T11:59:12Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-17T12:44:44.330621Z",
+  "td_signal": "anomaly_score=0.6760>tau=0.5170",
+  "td_censored": false,
+  "tr": "2026-09-17T12:45:44.295259Z",
+  "tr_censored": false,
+  "mttd_seconds": 2732.330621,
+  "mttr_seconds": 2792.295259,
+  "availability": 1.0,
+  "jaeger_restarts_before": "49",
+  "jaeger_restarts_after": "49",
+  "trial_valid": true,
+  "remediation": {
+    "rule_id": "R2-pod-kill-restart",
+    "outcome": "created",
+    "action": "restart",
+    "target": {
+      "kind": "Deployment",
+      "name": "frontend",
+      "namespace": "boutique"
+    },
+    "matched_feature": "log_error_rate",
+    "matched_z": 9.37994301246463,
+    "anomaly_score": 0.6760276229006149,
+    "tau": 0.5169638250421748,
+    "remediation_action_name": "r2-pod-kill-restart-1789649084"
+  },
+  "last_match_attempt": {
+    "rule_id": "R2-pod-kill-restart",
+    "outcome": "created",
+    "action": "restart",
+    "target": {
+      "kind": "Deployment",
+      "name": "frontend",
+      "namespace": "boutique"
+    },
+    "matched_feature": "log_error_rate",
+    "matched_z": 9.37994301246463,
+    "anomaly_score": 0.6760276229006149,
+    "tau": 0.5169638250421748,
+    "remediation_action_name": "r2-pod-kill-restart-1789649084"
+  },
+  "samples": [
+    {
+      "timestamp": "2026-09-17T12:44:44.314306Z",
+      "cpu_util": 0.15687570178094776,
+      "mem_util": 2356.62890625,
+      "network_rx": 50.44480850976617,
+      "log_error_rate": 4.553846153846154,
+      "trace_latency_ms": 9.503394495412845,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.6760276229006149
+    },
+    {
+      "timestamp": "2026-09-17T12:45:44.287453Z",
+      "cpu_util": 0.15129998216102233,
+      "mem_util": 2357.00390625,
+      "network_rx": 49.08546754297134,
+      "log_error_rate": 4.815384615384615,
+      "trace_latency_ms": 5.0467047619047625,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.6218866400026106
+    }
+  ]
+}

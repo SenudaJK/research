@@ -1,0 +1,61 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-12-config-drift.yaml",
+  "condition": "A",
+  "t0": "2026-09-17T15:16:42.343313Z",
+  "t0_source": "kubectl_patch_timestamp",
+  "td": "2026-09-17T15:17:47.563977Z",
+  "td_signal": "success-rate",
+  "td_censored": false,
+  "tr": "2026-09-17T15:19:47.568480Z",
+  "tr_censored": false,
+  "mttd_seconds": 65.220664,
+  "mttr_seconds": 185.225167,
+  "availability": 0.9340425531914893,
+  "jaeger_restarts_before": "50",
+  "jaeger_restarts_after": "50",
+  "trial_valid": true,
+  "remediation": null,
+  "last_match_attempt": null,
+  "samples": [
+    {
+      "timestamp": "2026-09-17T15:16:47.592595Z",
+      "cpu_util": 0.1633997793224006,
+      "mem_util": 2323.34375,
+      "network_rx": 47.94169913508555,
+      "log_error_rate": 6.2615384615384615,
+      "trace_latency_ms": 1.1530557103064067,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-17T15:17:47.563922Z",
+      "cpu_util": 0.19597047684585775,
+      "mem_util": 2288.1171875,
+      "network_rx": 36.404398388477496,
+      "log_error_rate": 6.230769230769231,
+      "trace_latency_ms": 1.506264214046823,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 0.7637795275590551
+    },
+    {
+      "timestamp": "2026-09-17T15:18:47.564343Z",
+      "cpu_util": 0.1432256988422951,
+      "mem_util": 2277.29296875,
+      "network_rx": 46.166107604842324,
+      "log_error_rate": 6.292307692307692,
+      "trace_latency_ms": 1.302018927444795,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 0.9919354838709677
+    },
+    {
+      "timestamp": "2026-09-17T15:19:47.568437Z",
+      "cpu_util": 0.139555837387513,
+      "mem_util": 2281.79296875,
+      "network_rx": 51.625723686508266,
+      "log_error_rate": 6.2153846153846155,
+      "trace_latency_ms": 1.3355904436860069,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

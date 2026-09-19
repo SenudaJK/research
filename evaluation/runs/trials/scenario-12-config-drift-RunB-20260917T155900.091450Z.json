@@ -1,0 +1,71 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-12-config-drift.yaml",
+  "condition": "B",
+  "t0": "2026-09-17T15:57:54.586083Z",
+  "t0_source": "kubectl_patch_timestamp",
+  "td": "2026-09-17T15:57:59.922333Z",
+  "td_signal": "anomaly_score=0.5288>tau=0.5170",
+  "td_censored": false,
+  "tr": "2026-09-17T15:58:59.923389Z",
+  "tr_censored": false,
+  "mttd_seconds": 5.33625,
+  "mttr_seconds": 65.337306,
+  "availability": 1.0,
+  "jaeger_restarts_before": "51",
+  "jaeger_restarts_after": "51",
+  "trial_valid": true,
+  "remediation": {
+    "rule_id": "R2-pod-kill-restart",
+    "outcome": "created",
+    "action": "restart",
+    "target": {
+      "kind": "Deployment",
+      "name": "frontend",
+      "namespace": "boutique"
+    },
+    "matched_feature": "log_error_rate",
+    "matched_z": 15.274860419424948,
+    "anomaly_score": 0.5287506070364085,
+    "tau": 0.5169638250421748,
+    "remediation_action_name": "r2-pod-kill-restart-1789660680"
+  },
+  "last_match_attempt": {
+    "rule_id": "R2-pod-kill-restart",
+    "outcome": "created",
+    "action": "restart",
+    "target": {
+      "kind": "Deployment",
+      "name": "frontend",
+      "namespace": "boutique"
+    },
+    "matched_feature": "log_error_rate",
+    "matched_z": 15.274860419424948,
+    "anomaly_score": 0.5287506070364085,
+    "tau": 0.5169638250421748,
+    "remediation_action_name": "r2-pod-kill-restart-1789660680"
+  },
+  "samples": [
+    {
+      "timestamp": "2026-09-17T15:57:59.911902Z",
+      "cpu_util": 0.13044824992544418,
+      "mem_util": 2336.3046875,
+      "network_rx": 49.22639542860209,
+      "log_error_rate": 5.753846153846154,
+      "trace_latency_ms": 1.277931129476584,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5287506070364085
+    },
+    {
+      "timestamp": "2026-09-17T15:58:59.912379Z",
+      "cpu_util": 0.140351513097907,
+      "mem_util": 2308.47265625,
+      "network_rx": 35.24331232904694,
+      "log_error_rate": 6.061538461538461,
+      "trace_latency_ms": 1.2462215743440235,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5353810343912494
+    }
+  ]
+}

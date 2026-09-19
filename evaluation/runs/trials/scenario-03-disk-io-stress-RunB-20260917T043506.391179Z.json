@@ -1,0 +1,71 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-03-disk-io-stress.yaml",
+  "condition": "B",
+  "t0": "2026-09-17T04:34:00Z",
+  "t0_source": "status.instances.*.startTime",
+  "td": "2026-09-17T04:35:05.864517Z",
+  "td_signal": "anomaly_score=0.6107>tau=0.5170",
+  "td_censored": false,
+  "tr": "2026-09-17T04:35:06.089086Z",
+  "tr_censored": false,
+  "mttd_seconds": 65.864517,
+  "mttr_seconds": 66.089086,
+  "availability": 1.0,
+  "jaeger_restarts_before": "43",
+  "jaeger_restarts_after": "43",
+  "trial_valid": true,
+  "remediation": {
+    "rule_id": "R1-cpu-starvation-scale",
+    "outcome": "created",
+    "action": "scale",
+    "target": {
+      "kind": "Deployment",
+      "name": "checkoutservice",
+      "namespace": "boutique"
+    },
+    "matched_feature": "cpu_util",
+    "matched_z": 22.054195559624727,
+    "anomaly_score": 0.6106521117630452,
+    "tau": 0.5169638250421748,
+    "remediation_action_name": "r1-cpu-starvation-scale-1789619706"
+  },
+  "last_match_attempt": {
+    "rule_id": "R1-cpu-starvation-scale",
+    "outcome": "created",
+    "action": "scale",
+    "target": {
+      "kind": "Deployment",
+      "name": "checkoutservice",
+      "namespace": "boutique"
+    },
+    "matched_feature": "cpu_util",
+    "matched_z": 22.054195559624727,
+    "anomaly_score": 0.6106521117630452,
+    "tau": 0.5169638250421748,
+    "remediation_action_name": "r1-cpu-starvation-scale-1789619706"
+  },
+  "samples": [
+    {
+      "timestamp": "2026-09-17T04:34:05.934929Z",
+      "cpu_util": 0.16013522293868118,
+      "mem_util": 2302.39453125,
+      "network_rx": 50.88853646110888,
+      "log_error_rate": 5.292307692307692,
+      "trace_latency_ms": 1.2406060606060605,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.49226172084838316
+    },
+    {
+      "timestamp": "2026-09-17T04:35:05.852719Z",
+      "cpu_util": 0.5104143700049578,
+      "mem_util": 2320.6328125,
+      "network_rx": 52.95109769584981,
+      "log_error_rate": 5.430769230769231,
+      "trace_latency_ms": 0.8583529411764707,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.6106521117630452
+    }
+  ]
+}

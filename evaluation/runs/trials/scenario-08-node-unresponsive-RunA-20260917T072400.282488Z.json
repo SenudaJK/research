@@ -1,0 +1,51 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-08-node-unresponsive.yaml",
+  "condition": "A",
+  "t0": "2026-09-17T07:21:48.272809Z",
+  "t0_source": "apply_timestamp_fallback",
+  "td": "2026-09-17T07:22:00.071305Z",
+  "td_signal": "success-rate",
+  "td_censored": false,
+  "tr": "2026-09-17T07:24:00.009905Z",
+  "tr_censored": false,
+  "mttd_seconds": 11.798496,
+  "mttr_seconds": 131.737096,
+  "availability": 1.0,
+  "jaeger_restarts_before": "47",
+  "jaeger_restarts_after": "48",
+  "trial_valid": false,
+  "remediation": null,
+  "last_match_attempt": null,
+  "samples": [
+    {
+      "timestamp": "2026-09-17T07:22:00.071244Z",
+      "cpu_util": 0.17037485567230867,
+      "mem_util": 2302.7734375,
+      "network_rx": 35.27585634930259,
+      "log_error_rate": 5.184615384615385,
+      "trace_latency_ms": 1.249818652849741,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 0.7711864406779662
+    },
+    {
+      "timestamp": "2026-09-17T07:23:00.015928Z",
+      "cpu_util": 0.14823639760489452,
+      "mem_util": 2302.64453125,
+      "network_rx": 45.75411661782433,
+      "log_error_rate": 4.907692307692308,
+      "trace_latency_ms": 1.6733164179104478,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-17T07:24:00.009832Z",
+      "cpu_util": 0.14393830920429737,
+      "mem_util": 2301.9375,
+      "network_rx": 38.24345328698589,
+      "log_error_rate": 4.615384615384615,
+      "trace_latency_ms": 1.4544000000000001,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

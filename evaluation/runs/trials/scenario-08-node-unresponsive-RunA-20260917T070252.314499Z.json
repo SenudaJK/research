@@ -1,0 +1,41 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-08-node-unresponsive.yaml",
+  "condition": "A",
+  "t0": "2026-09-17T07:01:40.206500Z",
+  "t0_source": "apply_timestamp_fallback",
+  "td": null,
+  "td_signal": null,
+  "td_censored": true,
+  "tr": "2026-09-17T07:02:52.089115Z",
+  "tr_censored": false,
+  "mttd_seconds": 600.0,
+  "mttr_seconds": 71.882615,
+  "availability": 1.0,
+  "jaeger_restarts_before": "47",
+  "jaeger_restarts_after": "47",
+  "trial_valid": true,
+  "remediation": null,
+  "last_match_attempt": null,
+  "samples": [
+    {
+      "timestamp": "2026-09-17T07:01:52.006244Z",
+      "cpu_util": 0.14273317632410873,
+      "mem_util": 2324.68359375,
+      "network_rx": 49.22668563829291,
+      "log_error_rate": 5.2153846153846155,
+      "trace_latency_ms": 1.2977715877437326,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-17T07:02:51.989016Z",
+      "cpu_util": 0.14756765472062908,
+      "mem_util": 2323.0703125,
+      "network_rx": 48.358431237335616,
+      "log_error_rate": 5.2615384615384615,
+      "trace_latency_ms": 1.2773060109289618,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}

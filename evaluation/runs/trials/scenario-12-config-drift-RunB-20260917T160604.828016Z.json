@@ -1,0 +1,43 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-12-config-drift.yaml",
+  "condition": "B",
+  "t0": "2026-09-17T16:04:31.593200Z",
+  "t0_source": "kubectl_patch_timestamp",
+  "td": null,
+  "td_signal": null,
+  "td_censored": true,
+  "tr": "2026-09-17T16:05:36.873327Z",
+  "tr_censored": false,
+  "mttd_seconds": 600.0,
+  "mttr_seconds": 65.280127,
+  "availability": 1.0,
+  "jaeger_restarts_before": "51",
+  "jaeger_restarts_after": "51",
+  "trial_valid": true,
+  "remediation": null,
+  "last_match_attempt": null,
+  "samples": [
+    {
+      "timestamp": "2026-09-17T16:04:36.888355Z",
+      "cpu_util": 0.15388934912272176,
+      "mem_util": 2328.765625,
+      "network_rx": 47.69142530667437,
+      "log_error_rate": 5.753846153846154,
+      "trace_latency_ms": 1.1226728232189975,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5037330992316341
+    },
+    {
+      "timestamp": "2026-09-17T16:05:36.865351Z",
+      "cpu_util": 0.1390915868628601,
+      "mem_util": 2330.4375,
+      "network_rx": 49.477443194794205,
+      "log_error_rate": 5.676923076923077,
+      "trace_latency_ms": 1.1146,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.5158626008085333
+    }
+  ]
+}

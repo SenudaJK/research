@@ -1,0 +1,41 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-05-packet-loss.yaml",
+  "condition": "A",
+  "t0": "2026-09-17T05:14:05Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": null,
+  "td_signal": null,
+  "td_censored": true,
+  "tr": "2026-09-17T05:15:16.786034Z",
+  "tr_censored": false,
+  "mttd_seconds": 600.0,
+  "mttr_seconds": 71.786034,
+  "availability": 0.9948979591836735,
+  "jaeger_restarts_before": "44",
+  "jaeger_restarts_after": "44",
+  "trial_valid": true,
+  "remediation": null,
+  "last_match_attempt": null,
+  "samples": [
+    {
+      "timestamp": "2026-09-17T05:14:16.687768Z",
+      "cpu_util": 0.13109205600084528,
+      "mem_util": 2320.60546875,
+      "network_rx": 45.71809843770632,
+      "log_error_rate": 5.338461538461538,
+      "trace_latency_ms": 2.321957333333333,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-17T05:15:16.697256Z",
+      "cpu_util": 0.1455925279491411,
+      "mem_util": 2325.56640625,
+      "network_rx": 49.39973609649766,
+      "log_error_rate": 4.984615384615385,
+      "trace_latency_ms": 1.2892244897959184,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 0.9931972789115646
+    }
+  ]
+}

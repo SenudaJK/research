@@ -1,0 +1,71 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-05-packet-loss.yaml",
+  "condition": "B",
+  "t0": "2026-09-17T05:27:32Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": "2026-09-17T05:27:43.954732Z",
+  "td_signal": "anomaly_score=0.6648>tau=0.5170",
+  "td_censored": false,
+  "tr": "2026-09-17T05:28:43.932890Z",
+  "tr_censored": false,
+  "mttd_seconds": 11.954732,
+  "mttr_seconds": 71.93289,
+  "availability": 1.0,
+  "jaeger_restarts_before": "45",
+  "jaeger_restarts_after": "45",
+  "trial_valid": true,
+  "remediation": {
+    "rule_id": "R4-network-latency-scale",
+    "outcome": "created",
+    "action": "scale",
+    "target": {
+      "kind": "Deployment",
+      "name": "recommendationservice",
+      "namespace": "boutique"
+    },
+    "matched_feature": "trace_latency_ms",
+    "matched_z": 13.277697399746765,
+    "anomaly_score": 0.664762401271235,
+    "tau": 0.5169638250421748,
+    "remediation_action_name": "r4-network-latency-scale-1789622864"
+  },
+  "last_match_attempt": {
+    "rule_id": "R4-network-latency-scale",
+    "outcome": "created",
+    "action": "scale",
+    "target": {
+      "kind": "Deployment",
+      "name": "recommendationservice",
+      "namespace": "boutique"
+    },
+    "matched_feature": "trace_latency_ms",
+    "matched_z": 13.277697399746765,
+    "anomaly_score": 0.664762401271235,
+    "tau": 0.5169638250421748,
+    "remediation_action_name": "r4-network-latency-scale-1789622864"
+  },
+  "samples": [
+    {
+      "timestamp": "2026-09-17T05:27:43.925045Z",
+      "cpu_util": 0.16312289484117765,
+      "mem_util": 2324.9140625,
+      "network_rx": 50.44458124335373,
+      "log_error_rate": 5.2615384615384615,
+      "trace_latency_ms": 13.529245783132534,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.664762401271235
+    },
+    {
+      "timestamp": "2026-09-17T05:28:43.924438Z",
+      "cpu_util": 0.20459500496064106,
+      "mem_util": 2582.6796875,
+      "network_rx": 49.06904280101249,
+      "log_error_rate": 4.7384615384615385,
+      "trace_latency_ms": 1.9280822784810128,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0,
+      "anomaly_score": 0.6125292073108621
+    }
+  ]
+}

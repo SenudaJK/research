@@ -1,0 +1,41 @@
+{
+  "scenario_file": "/Users/senudajayathilaka/Documents/Research/evaluation/scenarios/scenario-06-dns-failure.yaml",
+  "condition": "A",
+  "t0": "2026-09-17T06:07:52Z",
+  "t0_source": "status.experiment.containerRecords[0].events[0].timestamp",
+  "td": null,
+  "td_signal": null,
+  "td_censored": true,
+  "tr": "2026-09-17T06:09:03.832694Z",
+  "tr_censored": false,
+  "mttd_seconds": 600.0,
+  "mttr_seconds": 71.832694,
+  "availability": 1.0,
+  "jaeger_restarts_before": "46",
+  "jaeger_restarts_after": "46",
+  "trial_valid": true,
+  "remediation": null,
+  "last_match_attempt": null,
+  "samples": [
+    {
+      "timestamp": "2026-09-17T06:08:03.701396Z",
+      "cpu_util": 0.14406416373613556,
+      "mem_util": 2332.40234375,
+      "network_rx": 45.57800197752694,
+      "log_error_rate": 5.753846153846154,
+      "trace_latency_ms": 1.2582741935483872,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    },
+    {
+      "timestamp": "2026-09-17T06:09:03.728300Z",
+      "cpu_util": 0.13942347444587336,
+      "mem_util": 2311.76953125,
+      "network_rx": 45.11129309915722,
+      "log_error_rate": 5.384615384615385,
+      "trace_latency_ms": 1.2404409448818896,
+      "trace_error_pct": 0.0,
+      "frontend_success_rate": 1.0
+    }
+  ]
+}
